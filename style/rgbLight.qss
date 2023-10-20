@@ -1,0 +1,24 @@
+/* QWidget (Light Mode) */
+QWidget {
+    background-color: #F2E9FF; /* Light background color */
+    color: #3D315B; /* Dark text color */
+}
+
+/* QPushButton (Light Mode) */
+QPushButton {
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #7A71E7, stop:1 #5A4EA6); /* Gradient for regular state */
+    border: 2px solid #5A4EA6; /* Border color for regular state */
+    border-radius: 5px;
+    padding: 8px 16px;
+    color: #F2E9FF; /* Text color for regular state */
+}
+
+QPushButton:hover {
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #5A4EA6, stop:1 #7A71E7); /* Gradient for hover state */
+}
+
+QPushButton:pressed {
+    background-color: #3D315B; /* Background color for pressed state */
+    border: 2px solid #7A71E7; /* Border color for pressed state */
+    color: #F2E9FF; /* Text color for pressed state */
+}
