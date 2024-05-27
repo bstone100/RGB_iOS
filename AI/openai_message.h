@@ -1,5 +1,7 @@
 #pragma once
 
+#include "QtCore/qjsonarray.h"
+#include "QtCore/qjsonobject.h"
 #include <QObject>
 
 class OpenAIMessage: public QObject
@@ -7,14 +9,16 @@ class OpenAIMessage: public QObject
     Q_OBJECT
 
 public:
-    enum class Role {
+    enum Role {
         System,
         User,
-        Assistant
+        Assistant,
+        Tool
     };
 
     explicit OpenAIMessage(QObject *parent = nullptr);
     explicit OpenAIMessage(const QString& content, Role role, QObject *parent = nullptr);
+    explicit OpenAIMessage(const QJsonObject &contentObject, Role role);
     ~OpenAIMessage();
 
     inline static QString roleToString(Role role)
@@ -26,6 +30,8 @@ public:
                 return "user";
             case Role::Assistant:
                 return "assistant";
+            case Role::Tool:
+                return "tool";
             default:
                 return "unknown";
         }
@@ -39,6 +45,8 @@ public:
             return Role::User;
         } else if (role == "assistant") {
             return Role::Assistant;
+        } else if (role == "tool") {
+            return Role::Tool;
         } else {
             return Role::System;
         }
@@ -47,8 +55,35 @@ public:
     QString content() const;
     void setContent(const QString& content);
 
+
     Role role() const;
     void setRole(Role role);
+
+    QJsonObject contentObject() const;
+    void setContentObject(const QJsonObject &newContentObject);
+
+    void setUserMessage(const QString &text);
+    QString getUserMessage();
+
+    void addScenegraph();
+    void removeScenegraph();
+
+    void addInstructions();
+    void removeInstructions();
+
+    void addTimestamp();
+    void removeTimestamp();
+
+    QString tool_call_id() const;
+    void setTool_call_id(const QString &newTool_call_id);
+
+    QJsonArray tool_calls() const;
+    void setTool_calls(const QJsonArray &newTool_calls);
+
+    QString instructions() const;
+
+    QJsonObject scenegraph() const;
+
 
 signals:
     void contentChanged();
@@ -56,6 +91,17 @@ signals:
 
 private:
     QString m_content;
+    QJsonObject m_contentObject;
+
+    QString m_tool_call_id;
+    QJsonArray m_tool_calls;
+
     Role m_role;
 
+    QString m_instructions;
+    QJsonObject m_scenegraph;
 };
+
+
+
+

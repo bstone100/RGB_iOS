@@ -1,0 +1,106 @@
+/* QWidget (Light Mode) */
+QWidget {
+    font-size: 14px;
+    font-weight: 600;
+    color: @foregroundColor;
+}
+
+QMainWindow {
+    background-color: @backgroundColor;
+}
+
+/* QPushButton (Light Mode) */
+QAbstractButton {
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 @menuItemSelectedColor, stop:1 @menuBorderColor); /* Gradient for regular state */
+    border: 2px solid @menuBorderColor; /* Border color for regular state */
+    border-radius: 5px;
+    padding: 8px 16px;
+    color: white; /* Text color for regular state */
+}
+
+QAbstractButton:hover {
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 @menuBorderColor, stop:1 @menuItemSelectedColor); /* Gradient for hover state */
+}
+
+QAbstractButton:pressed {
+    background-color: @foregroundColor; /* Background color for pressed state */
+    border: 2px solid @menuItemSelectedColor; /* Border color for pressed state */
+    color: white; /* Text color for pressed state */
+}
+
+QGroupBox {
+    background-color: transparent;
+    border: 2px solid @foregroundColor;
+    border-radius: 5px;
+    margin-top: 1.5ex; /* leave space at the top for the title */
+    font-size: 17px;
+}
+
+QGroupBox::title {
+    font: helvetica;
+    subcontrol-origin: margin;
+    subcontrol-position: top left; /* position at the top left */
+    left: 10;
+    background-color: @sidePanelColor;
+}
+
+QComboBox {
+    color: @foregroundColor; /* Dark text color */
+    background-color: transparent;
+    border: none;
+    padding: 0px;
+    margin: 0px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: @backgroundColor; /* Light background color */
+    border: 1px solid @menuBorderColor; /* Border color */
+    border-radius: 5px; /* Rounded corners */
+    selection-background-color: @menuItemSelectedColor;
+    color: @foregroundColor;
+}
+
+QLineEdit {
+    background-color: transparent; /* Light background color */
+    border: 2px solid @foregroundColor; /* Border color */
+    border-radius: 20px;
+    padding: 4px 8px;
+}
+
+QTextEdit {
+    background-color: transparent;
+    border: none;
+    font-size: 22px;
+}
+
+QMenu {
+    background-color: @backgroundColor; /* Light background color */
+    border: 1px solid @menuBorderColor; /* Border color */
+    border-radius: 5px; /* Rounded corners */
+}
+
+QMenu::item {
+    padding: 4px 20px; /* Padding for menu items */
+    background-color: transparent; /* Transparent background for items */
+}
+
+QMenu::item:selected {
+    background-color: @menuItemSelectedColor; /* Background color for selected item */
+}
+
+QMenu::item:disabled {
+    color: @menuItemDisabledColor; /* Color for disabled items */
+    background-color: transparent; /* Transparent background for disabled items */
+}
+
+SidePanel {
+    background-color: @sidePanelColor;
+}
+
+QScrollArea {
+    background: transparent;
+    border: none;
+}
+
+
+

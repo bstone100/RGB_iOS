@@ -1,0 +1,3 @@
+[submodule "qt-whisper"]
+	path = qt-whisper
+	url = https://github.com/Ugibugi/qt-whisper.git

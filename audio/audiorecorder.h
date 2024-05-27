@@ -7,6 +7,7 @@
 #include <QMediaCaptureSession>
 #include <QMediaRecorder>
 #include <QUrl>
+#include "QTimer"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -25,12 +26,29 @@ public:
     AudioRecorder();
     void init();
 
-    void togglePause();
     void toggleRecord();
+
+    AudioLevel *getLevelWidget();
+    void updateLevelWidget();
+    void clearLevelWidget();
+
+    QString getRecordingLocation() const;
+
+    bool currentlyRecording();
+
+signals:
+    void recordingFinished();
 
 private:
     QMediaCaptureSession m_captureSession;
     QMediaRecorder *m_audioRecorder = nullptr;
+
+    QString recordingLocation;
+
+    QTimer updateLevelTimer;
+    AudioLevel *levelWidget = NULL;
 };
 
 #endif // AUDIORECORDER_H
+
+

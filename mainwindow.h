@@ -7,6 +7,23 @@
 #include <QPushButton>
 #include <QInputDialog>
 #include <QSettings>
+#include <QRadioButton>
+#include <QTouchEvent>
+#include "QTextEdit"
+#include "QStackedWidget"
+#include "QtWidgets/qlabel.h"
+#include "qelapsedtimer.h"
+#include "qpropertyanimation.h"
+#include "QQueue"
+#include "QTableView"
+#include "QTimer"
+
+class OpenAIRequest;
+class AudioRecorder;
+class SvgButton;
+class ChatTextEdit;
+class AudioLevel;
+class ResizingComboBox;
 
 class MainWindow : public QMainWindow
 {
@@ -16,28 +33,78 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-private slots:
-    void onApiKeyButtonClicked();
-    void onDarkModeButtonClicked();
+    static MainWindow *self();
+
+    void sendChat();
+
+    void saveSettings();
+    void loadSettings();
+
+    static QString version;
+    static QString currentPath;
+
+    static QColor lightColor;
+    static QColor lightMidColor;
+    static QColor darkMidColor;
+    static QColor darkColor;
+
+    bool isDarkModeOn(){return isDarkMode;}
+    bool isSystemDark();
+    void handleThemeChange(bool isDarkMode);
+
+    void fadeInWidget(QWidget *widget, int duration);
+    void fadeOutWidget(QWidget *widget, int duration);
+    void fadeInWidgets(QList<QWidget *> widgets, int duration);
+    void fadeOutWidgets(QList<QWidget *> widgets, int duration);
+    void setWidgetOpacity(QWidget *widget, double opacity);
+    double getWidgetOpacity(QWidget *widget);
+
+
+protected:
+    void closeEvent(QCloseEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+    bool eventFilter(QObject *obj, QEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 private:
-    void saveApiKey();
-    void loadApiKey();
-    void updateApiKeyButtonLabel();
+    static MainWindow *singleton;
 
-    void saveDarkMode();
-    void loadDarkMode();
-    void setDarkMode(bool darkMode);
+    bool settingsLoaded = false;
+    bool onboarded = false;
+
+    void setDarkMode(bool isDarkMode);
+
+    QSettings *settings;
 
     QWidget *centralWidget;
     QVBoxLayout *layout;
-    QPushButton *apiKeyButton;
-    QPushButton *darkModeButton; // Added dark mode button
-    QString apiKey;
-    bool isDarkMode; // Track the current mode
 
-    static const QString apiKeySettingsKey;
-    static const QString isDarkModeSettingsKey;
+    ResizingComboBox *themeComboBox;
+
+    QString apiKey;
+    bool isDarkMode;
+    bool isAutoTheme;
+
+    OpenAIRequest *chatRequest;
+
+
+    void touchEvent(QTouchEvent *event);
+
+    enum Gesture {
+        SidePanel = 0,
+        Undefined
+    };
+
+    Gesture currentGesture = Undefined;
+
 };
 
 #endif // MAINWINDOW_H
+
+
+
+
+
+
+
+

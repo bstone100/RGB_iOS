@@ -2,9 +2,11 @@
 
 #include <QObject>
 #include <QNetworkAccessManager>
-
+#include "QtMultimedia/qmediaplayer.h"
 #include "openai_message.h"
 
+
+class AudioLevelCalculator;
 
 class OpenAIRequest : public QObject
 {
@@ -21,15 +23,11 @@ public:
         Success
     };
 
-public slots:
     QString accessToken() const;
     void setAccessToken(const QString& accessToken);
 
     QString model() const;
     void setModel(const QString& model);
-
-    QString prompt() const;
-    void setPrompt(const QString& prompt);
 
     QString filePath() const;
     void setFilePath(const QString& filePath);
@@ -56,8 +54,30 @@ public slots:
     QList<OpenAIMessage*> messages() const;
     void setMessages(const QList<OpenAIMessage *> &newMessages);
 
+    void addMessage(OpenAIMessage *newMessage);
+    void removeMessage(OpenAIMessage *message);
+    void removeAllMessages();
+
+    void removeAllScenegraphs();
+    void removeAllInstructions();
+    void removeAllTimestamps();
+
+    QString ttsInputText() const;
+    void setTtsInputText(const QString &newTtsInputText);
+
+    QString ttsVoice() const;
+    void setTtsVoice(const QString &newTtsVoice);
+
+    QString responseFormat() const;
+    void setResponseFormat(const QString &newResponseFormat);
+
+    double speed() const;
+    void setSpeed(double newSpeed);
+
     // execute a request
     void execute();
+
+    void saveMessagesToFile() const;
 
 signals:
     // Signal emitted when the request is finished successfully
@@ -66,25 +86,14 @@ signals:
     // Signal emitted when the request encounters an error
     void requestError(const QString& errorString);
 
-    void accessTokenChanged();
-    void modelChanged();
-    void promptChanged();
-    void filePathChanged();
     void generatedTextChanged();
     void errorStringChanged();
     void statusChanged();
-    void maxTokensChanged();
-    void temperatureChanged();
-    void topPChanged();
-    void frequencyPenaltyChanged();
-    void presencePenaltyChanged();
-    void messagesChanged();
 
 private:
     QNetworkAccessManager *m_networkAccessManager;
     QString m_accessToken;
     QString m_model;
-    QString m_prompt;
     QString m_filePath;
     QString m_generatedText;
     QString m_errorString;
@@ -96,7 +105,22 @@ private:
     double m_presencePenalty;
     QList<OpenAIMessage*> m_messages;
 
-    void sendRequest();
-    void sendChatRequest();
-    void sendMultiPartRequest();
+    QString m_ttsInputText;
+    QString m_ttsVoice;
+    QString m_responseFormat;
+    double  m_speed;
+
+    void sendChatCompletionsRequest();
+    void sendAudioTranscriptionsRequest();
+    void sendAudioTranscriptionsRequestLocal();
+    void sendAudioSpeechRequest();
+
+    void playAudio(const QByteArray &audioData);
+
+    static const int MAX_SELF_RESPONSE_CALLS = 5;
+    int selfResponseCount = 0;
 };
+
+
+
+

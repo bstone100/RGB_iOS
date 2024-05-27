@@ -4,7 +4,10 @@
 #ifndef AUDIOLEVEL_H
 #define AUDIOLEVEL_H
 
+#include "QtCore/qtimer.h"
 #include <QWidget>
+
+class AudioRecorder;
 
 class AudioLevel : public QWidget
 {
@@ -15,11 +18,40 @@ public:
     // Using [0; 1.0] range
     void setLevel(qreal level);
 
+    void setFillColor(const QColor &newFillColor);
+
+    AudioRecorder *getAudioRecorder() const;
+    void setAudioRecorder(AudioRecorder *newAudioRecorder);
+
+    bool isRecording();
+
+    void start();
+    void stop();
+
+    void resizeImage();
+
 protected:
     void paintEvent(QPaintEvent *event) override;
 
 private:
+    void paintMic();
+    void paintMascot();
+    void paintConcaveMascot();
+    void paintPandaImage();
+
     qreal m_level = 0.0;
+
+    QColor fillColor;
+
+    QTimer timer;
+    qreal opacity;
+    bool fadingOut;
+    void updateOpacity();
+
+    AudioRecorder *audioRecorder;
+
+    QPixmap pandaImage;
+    QPixmap currentPixmap;
 };
 
 #endif // QAUDIOLEVEL_H
