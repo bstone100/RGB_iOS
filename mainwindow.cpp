@@ -22,6 +22,10 @@
 #include "QStackedLayout"
 #include "qstandardpaths.h"
 #include "widgets/resizingcombobox.h"
+#include "QAudioFormat"
+#include "QThread"
+#include "audio/audiotranscriptionmanager.h"
+
 
 #if defined(Q_OS_IOS)
 #include "iOS/hapticfeedback.h"
@@ -46,8 +50,8 @@ MainWindow::MainWindow(QWidget *parent)
         singleton = this;
     }
 
-    qApp->setOrganizationName("BenProductions");
-    qApp->setApplicationName("Panda Task");
+    qApp->setOrganizationName("BenMaxProductions");
+    qApp->setApplicationName("Intellilights");
 
     qApp->installEventFilter(this);
 
@@ -75,6 +79,15 @@ MainWindow::MainWindow(QWidget *parent)
     setCentralWidget(centralWidget);
 
     layout = new QVBoxLayout(centralWidget);
+
+    microphoneButton = new QPushButton(this);
+    microphoneButton->setText("🎤");
+
+    transcriptionLabel = new QLabel("Transcription goes here.", this);
+
+    connect(microphoneButton, &QPushButton::clicked, AudioTranscriptionManager::self(), &AudioTranscriptionManager::start);
+    connect(AudioTranscriptionManager::self(), &AudioTranscriptionManager::transcriptionReceived, this, &MainWindow::updateTranscriptionLabel);
+
 
     themeComboBox = new ResizingComboBox(SidePanel::self());
     QStringList themes = {tr("Light"), tr("Dark"), tr("Auto")};
@@ -110,7 +123,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     QJsonObject systemPrompt;
 
-    systemPrompt["prompt"] = "You are part of an app called RGB. The app directly controls an RGB light strip through tool calls. "
+    systemPrompt["prompt"] = "You are part of an app called Intellilights. The app directly controls an RGB light strip through tool calls. "
                              "Your sole job is to make the correct tool calls based on the user's requests."
                              "Only use tools that you have been given access to."
                              "Don't make an excessive number of tool calls even if the user requests it.";
@@ -135,7 +148,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     // Title for the side panel
-    auto titleLabel = new QLabel("RGB");
+    auto titleLabel = new QLabel("Intellilights");
     titleLabel->setAlignment(Qt::AlignCenter);
 //    titleLabel->setTextFormat(Qt::RichText); // enable HTML tags
     titleLabel->setStyleSheet("QLabel{font-size: 25px;}");
@@ -149,7 +162,7 @@ MainWindow::MainWindow(QWidget *parent)
     appearanceGroupBox->setLayout(appearanceLayout);
 
 
-    QString credits = QString("<p style='line-height: 120%;'>RGB v%1<br/>© 2024 Benjamin Stone</p>").arg(version);
+    QString credits = QString("<p style='line-height: 120%;'>Intellilights v%1<br/>© 2024 Benjamin Stone</p>").arg(version);
     auto creditLabel = new QLabel(credits);
     creditLabel->setAlignment(Qt::AlignCenter);
     creditLabel->setStyleSheet("QLabel{font-size: 12px;}");
@@ -171,6 +184,8 @@ MainWindow::MainWindow(QWidget *parent)
     // Adding layouts and widgets to the main layout
     layout->addLayout(topRowLayout);
     layout->addStretch();
+    layout->addWidget(microphoneButton);
+    layout->addWidget(transcriptionLabel);
 
     auto margins = layout->contentsMargins();
     margins.setTop(0);
@@ -546,6 +561,11 @@ void MainWindow::touchEvent(QTouchEvent *event)
     if (event->type() == QEvent::TouchEnd) {
         currentGesture = Undefined;
     }
+}
+
+void MainWindow::updateTranscriptionLabel(QString text)
+{
+    transcriptionLabel->setText(text);
 }
 
 

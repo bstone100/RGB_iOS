@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.5)
 
-set(MY_APP_PROJECT_NAME "RGB")
+set(MY_APP_PROJECT_NAME "Intellilights")
 set(PROJECT_VERSION 0.0)
 add_definitions(-DPROJECT_VERSION="${PROJECT_VERSION}")
-set(MY_APP_REVERSE_DNS_IDENTIFIER "com.bstone.RGB")
+set(MY_APP_REVERSE_DNS_IDENTIFIER "com.bstone.Intellilights")
 
 project(${MY_APP_PROJECT_NAME} VERSION ${PROJECT_VERSION} LANGUAGES CXX)
 
@@ -21,6 +21,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Essential for being able to symbolicate crash reports.
 set(CMAKE_CXX_VISIBILITY_PRESET default)
 
+
+
 # Determine the platform and set the appropriate icon file
 if(APPLE)
     if(IOS)
@@ -28,6 +30,9 @@ if(APPLE)
         set(RESOURCE_ASSETS
             "${CMAKE_CURRENT_SOURCE_DIR}/iOS/LaunchScreen.storyboard"
             "${CMAKE_CURRENT_SOURCE_DIR}/iOS/AppIconSet.xcassets"
+            "${CMAKE_CURRENT_SOURCE_DIR}/whisper.cpp/models/ggml-base.en.bin"
+            "${CMAKE_CURRENT_SOURCE_DIR}/whisper.cpp/models/ggml-base.en-encoder.mlmodelc"
+            "${CMAKE_CURRENT_SOURCE_DIR}/whisper.cpp/ggml-metal.metal"
         )
     else() # Assuming macOS if not iOS
         set(app_icon "${CMAKE_CURRENT_SOURCE_DIR}/images/rgb.icns")
@@ -54,8 +59,12 @@ endif()
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network Multimedia Svg)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Multimedia Svg)
 
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Force static libraries" FORCE)
+add_subdirectory(whisper.cpp)
+
+
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(RGB
+    qt_add_executable(Intellilights
         MANUAL_FINALIZATION
         main.cpp
         mainwindow.cpp
@@ -71,24 +80,23 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         widgets/resizingcombobox.h widgets/resizingcombobox.cpp
         audio/audiolevelcalculator.h audio/audiolevelcalculator.cpp
         macOS/notificationhelper.h macOS/notificationhelper.mm
-
     )
 # Define target properties for Android with Qt 6 as:
-#    set_property(TARGET RGB APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
+#    set_property(TARGET Intellilights APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
 #                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
 # For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
     if (ANDROID)
-        add_android_openssl_libraries(RGB)
+        add_android_openssl_libraries(Intellilights)
     endif()
 else()
     if(ANDROID)
-        add_library(RGB SHARED
+        add_library(Intellilights SHARED
             ${PROJECT_SOURCES}
         )
 # Define properties for Android with Qt 5 after find_package() calls as:
 #    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
     else()
-        add_executable(RGB
+        add_executable(Intellilights
             ${PROJECT_SOURCES}
         )
     endif()
@@ -98,20 +106,22 @@ endif()
 # Conditionally compile specific sources
 if(APPLE)
     if(IOS)
-        target_sources(RGB PRIVATE
+        target_sources(Intellilights PRIVATE
             iOS/hapticfeedbackhelper.mm iOS/hapticfeedback.h
             iOS/AudioSessionHelper.h iOS/AudioSessionHelper.mm
             iOS/DarkModeDetector.h iOS/DarkModeDetector.mm
             macOS/AudioRecorderBridge.h macOS/AudioRecorderBridge.mm
+            audio/whisperinterface.h audio/whisperinterface.mm
+            audio/audiotranscriptionmanager.h audio/audiotranscriptionmanager.cpp
             ${RESOURCE_ASSETS}
         )
         set_source_files_properties(${RESOURCE_ASSETS}
-                TARGET_DIRECTORY RGB
+                TARGET_DIRECTORY Intellilights
                 PROPERTIES
                     MACOSX_PACKAGE_LOCATION Resources
         )
     else() # Assuming macOS if not iOS
-        target_sources(RGB PRIVATE
+        target_sources(Intellilights PRIVATE
             macOS/MacThemeDetector.h macOS/MacThemeDetector.mm
             macOS/AudioRecorderBridge.h macOS/AudioRecorderBridge.mm
         )
@@ -131,11 +141,12 @@ if(APPLE)
     find_library(USER_NOTIFICATIONS_FRAMEWORK UserNotifications)
 endif()
 
-target_link_libraries(RGB PRIVATE
+target_link_libraries(Intellilights PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Network
     Qt${QT_VERSION_MAJOR}::Multimedia
     Qt${QT_VERSION_MAJOR}::Svg
+    whisper
     ${UIKIT_LIBRARY}
     ${AVFOUNDATION_FRAMEWORK}
     ${COREAUDIO_FRAMEWORK}
@@ -143,7 +154,7 @@ target_link_libraries(RGB PRIVATE
 )
 
 
-set_target_properties(RGB PROPERTIES
+set_target_properties(Intellilights PROPERTIES
     MACOSX_BUNDLE TRUE
     WIN32_EXECUTABLE TRUE
 
@@ -174,12 +185,12 @@ set_target_properties(RGB PROPERTIES
 )
 
 include(GNUInstallDirs)
-install(TARGETS RGB
+install(TARGETS Intellilights
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
 if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(RGB)
+    qt_finalize_executable(Intellilights)
 endif()

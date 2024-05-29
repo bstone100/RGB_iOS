@@ -17,6 +17,7 @@
 #include "QQueue"
 #include "QTableView"
 #include "QTimer"
+#include "QAudioSink"
 
 class OpenAIRequest;
 class AudioRecorder;
@@ -87,6 +88,7 @@ private:
 
     OpenAIRequest *chatRequest;
 
+    // gestures
 
     void touchEvent(QTouchEvent *event);
 
@@ -96,6 +98,13 @@ private:
     };
 
     Gesture currentGesture = Undefined;
+
+    // audio
+
+    QPushButton *microphoneButton;
+    QLabel *transcriptionLabel;
+
+    void updateTranscriptionLabel(QString text);
 
 };
 
