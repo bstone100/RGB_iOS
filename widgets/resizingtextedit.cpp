@@ -1,10 +1,10 @@
-#include "chattextedit.h"
+#include "resizingtextedit.h"
 #include <QFontMetrics>
 #include "QAbstractTextDocumentLayout"
 #include "QScroller"
 
-ChatTextEdit::ChatTextEdit(QWidget *parent) : QTextEdit(parent) {
-    connect(this, &ChatTextEdit::textChanged, this, &ChatTextEdit::updateHeight);
+ResizingTextEdit::ResizingTextEdit(QWidget *parent) : QTextEdit(parent) {
+    connect(this, &ResizingTextEdit::textChanged, this, &ResizingTextEdit::updateHeight);
 
 #if defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
     QScroller* scroller = QScroller::scroller(this);
@@ -24,7 +24,7 @@ ChatTextEdit::ChatTextEdit(QWidget *parent) : QTextEdit(parent) {
     updateHeight();
 }
 
-void ChatTextEdit::updateHeight() {
+void ResizingTextEdit::updateHeight() {
     int docHeight = this->document()->size().height(); // Get the document height
     int margins = this->contentsMargins().top() + this->contentsMargins().bottom(); // Calculate the total vertical margins
 
@@ -37,29 +37,29 @@ void ChatTextEdit::updateHeight() {
     setFixedHeight(height);
 }
 
-int ChatTextEdit::getMaxHeight() const
+int ResizingTextEdit::getMaxHeight() const
 {
     return maxHeight;
 }
 
-void ChatTextEdit::setMaxHeight(int newMaxHeight)
+void ResizingTextEdit::setMaxHeight(int newMaxHeight)
 {
     maxHeight = newMaxHeight;
     updateHeight();
 }
 
-int ChatTextEdit::getMinHeight() const
+int ResizingTextEdit::getMinHeight() const
 {
     return minHeight;
 }
 
-void ChatTextEdit::setMinHeight(int newMinHeight)
+void ResizingTextEdit::setMinHeight(int newMinHeight)
 {
     minHeight = newMinHeight;
     updateHeight();
 }
 
-bool ChatTextEdit::event(QEvent *e)
+bool ResizingTextEdit::event(QEvent *e)
 {
     switch (e->type()) {
     case QEvent::Resize:

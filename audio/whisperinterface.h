@@ -2,7 +2,12 @@
 extern "C" {
 #endif
 
-void registerTranscriptionUpdateCallback(void (*callback)(const char*));
+void registerTranscriptionUpdatedSignal(void (*callback)(const char*));
+void registerSilenceDetectedSignal(void (*func)(void));
+void registerLevelCalculatedSignal(void (*func)(const float));
+void registerTimeLimitReachedSignal(void (*func)(void));
+
+float getCurrentLevel();
 void setupAudioCapture();
 void startAudioCapture();
 void stopAudioCapture();

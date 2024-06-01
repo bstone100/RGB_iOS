@@ -2,9 +2,8 @@
 #include <dispatch/dispatch.h>
 #include "../whisper.cpp/whisper.h"
 #include "QDebug"
-
-
-#import <UIKit/UIKit.h>
+#include "audiotranscriptionmanager.h"
+#include "../mainwindow.h"
 
 #import <AVFoundation/AVFoundation.h>
 #import <AudioToolbox/AudioQueue.h>
@@ -32,21 +31,23 @@ struct StateInp {
     struct whisper_context * ctx;
 
     // VAD
-    float silenceThreshold;
+    bool isSpeechStarted;
     float silenceTimeOut; // in seconds
     float currentSilenceDuration;
+
+    float noiseEstimate;           // Estimated noise level
+    float adaptiveThreshold;       // Dynamic threshold based on noise estimate
+    float thresholdMin;            // Minimum threshold to avoid too low sensitivity
+    float thresholdMax;
+    float thresholdFactor;         // Factor to multiply noise estimate to set threshold
+
+    float currentLevel;
 };
 
 static StateInp stateInp;
 
 // Callback function declaration for handling audio input
 static void AudioInputCallback(void *userData, AudioQueueRef queue, AudioQueueBufferRef buffer, const AudioTimeStamp *startTime, UInt32 numPacketDescriptions, const AudioStreamPacketDescription *packetDescs);
-
-static void (*transcriptionUpdateCallback)(const char *) = NULL;
-
-void registerTranscriptionUpdateCallback(void (*callback)(const char*)) {
-    transcriptionUpdateCallback = callback;
-}
 
 void setupAudioCapture() {
     // whisper.cpp initialization
@@ -96,9 +97,13 @@ void setupAudioCapture() {
     stateInp.isTranscribing = false;
     stateInp.isRealtime = true;
 
-    stateInp.silenceThreshold = 1000.0; // Energy level that defines silence
-    stateInp.silenceTimeOut = 2.0; // 2 seconds of silence before stopping
-    stateInp.currentSilenceDuration = 0.0;
+    stateInp.silenceTimeOut = 1.5; // seconds of silence before stopping
+
+    stateInp.thresholdMin = 0.01;      // Prevents the threshold from becoming too low
+    stateInp.thresholdMax = 0.1;
+    stateInp.thresholdFactor = 4.0;    // Example scaling factor
+
+    stateInp.currentLevel = 0.0;
 }
 
 void startAudioCapture() {
@@ -106,6 +111,12 @@ void startAudioCapture() {
     NSLog(@"Start capturing");
 
     stateInp.n_samples = 0;
+    stateInp.currentSilenceDuration = 0.0;
+
+    stateInp.noiseEstimate = 0.0;
+    stateInp.adaptiveThreshold = 0.1;
+
+    stateInp.isSpeechStarted = false;
 
     OSStatus status = AudioQueueNewInput(&stateInp.dataFormat,
                                          AudioInputCallback,
@@ -114,6 +125,11 @@ void startAudioCapture() {
                                          kCFRunLoopCommonModes,
                                          0,
                                          &stateInp.queue);
+
+    // Enable metering
+    UInt32 enableMetering = 1; // true
+    AudioQueueSetProperty(stateInp.queue, kAudioQueueProperty_EnableLevelMetering, &enableMetering, sizeof(enableMetering));
+
 
     if (status == 0) {
         for (int i = 0; i < NUM_BUFFERS; i++) {
@@ -147,8 +163,54 @@ void stopAudioCapture() {
     AudioQueueDispose(stateInp.queue, true);
 }
 
+void clearAudioBuffers() {
+    NSLog(@"Clearing buffer contents");
 
+    // Reset the sample counter
+    stateInp.n_samples = 0;
 
+    // Clear each buffer
+    for (int i = 0; i < NUM_BUFFERS; i++) {
+        memset(stateInp.buffers[i]->mAudioData, 0, stateInp.buffers[i]->mAudioDataBytesCapacity);
+        stateInp.buffers[i]->mAudioDataByteSize = 0;
+
+        // Re-enqueue each buffer
+        OSStatus status = AudioQueueEnqueueBuffer(stateInp.queue, stateInp.buffers[i], 0, NULL);
+        if (status != noErr) {
+            NSLog(@"Failed to re-enqueue buffer %d", i);
+        }
+    }
+
+    NSLog(@"Buffers cleared");
+}
+
+float getCurrentLevel() {
+    if (!stateInp.isCapturing) {
+        return 0.0;
+    }
+
+    UInt32 dataSize = sizeof(AudioQueueLevelMeterState);
+    AudioQueueLevelMeterState *levels = (AudioQueueLevelMeterState *)malloc(dataSize);
+
+    if (!levels) {
+        NSLog(@"Memory allocation failed for AudioQueueLevelMeterState");
+        return 0.0f; // Handle memory allocation failure
+    }
+
+    // Get the metering data
+    OSStatus status = AudioQueueGetProperty(stateInp.queue, kAudioQueueProperty_CurrentLevelMeter, levels, &dataSize);
+    if (status != noErr) {
+        NSLog(@"Failed to retrieve level meter property");
+        free(levels);
+        return 0.0f;
+    }
+
+    // Assuming mono audio or getting only the first channel level
+    float level = levels[0].mAveragePower;
+
+    free(levels);
+    return level;
+}
 
 
 
@@ -187,8 +249,10 @@ void onTranscribe() {
         params.no_context       = true;
         params.single_segment   = stateInp.isRealtime;
         params.no_timestamps    = params.single_segment;
+        params.suppress_blank   = true;
+        params.suppress_non_speech_tokens = true;
 
-        CFTimeInterval startTime = CACurrentMediaTime();
+        auto startTime = clock();
 
         whisper_reset_timings(stateInp.ctx);
 
@@ -199,9 +263,9 @@ void onTranscribe() {
 
         whisper_print_timings(stateInp.ctx);
 
-        CFTimeInterval endTime = CACurrentMediaTime();
+        auto endTime = clock();
 
-        NSLog(@"\nProcessing time: %5.3f, on %d threads", endTime - startTime, params.n_threads);
+        NSLog(@"\nProcessing time: %5.3lu, on %d threads", endTime - startTime, params.n_threads);
 
         // result text
         NSString *result = @"";
@@ -214,16 +278,10 @@ void onTranscribe() {
             result = [result stringByAppendingString:[NSString stringWithUTF8String:text_cur]];
         }
 
-        const float tRecording = (float)stateInp.n_samples / (float)stateInp.dataFormat.mSampleRate;
-
-        // append processing time
-        result = [result stringByAppendingString:[NSString stringWithFormat:@"\n\n[recording time:  %5.3f s]", tRecording]];
-        result = [result stringByAppendingString:[NSString stringWithFormat:@"  \n[processing time: %5.3f s]", endTime - startTime]];
-
         // dispatch the result to the main thread
         dispatch_async(dispatch_get_main_queue(), ^{
             stateInp.isTranscribing = false;
-            transcriptionUpdateCallback(result.UTF8String);
+            emit AudioTranscriptionManager::self()->transcriptionUpdated(result.UTF8String);
         });
     });
 }
@@ -249,40 +307,71 @@ void AudioInputCallback(void * inUserData,
     NSLog(@"Captured %d new samples", n);
 
     if (stateInp->n_samples + n > MAX_AUDIO_SEC*SAMPLE_RATE) {
-        NSLog(@"Too much audio data, ignoring");
+        NSLog(@"Audio recording time limit reached.");
 
         dispatch_async(dispatch_get_main_queue(), ^{
-            stopAudioCapture();
+            // main window will begin appending onto current transcription instead of replacing
+            emit AudioTranscriptionManager::self()->timeLimitReached();
+
+            // keep recording
+            clearAudioBuffers();
         });
 
         return;
     }
 
-    float sumEnergy = 0;
+    float sumSquare = 0;
+
     for (int i = 0; i < n; i++) {
         stateInp->audioBufferI16[stateInp->n_samples + i] = ((short*)inBuffer->mAudioData)[i];
-        sumEnergy += pow(((short*)inBuffer->mAudioData)[i], 2);
+        sumSquare += pow(((short*)inBuffer->mAudioData)[i], 2);
     }
 
-    float averageEnergy = sumEnergy / n;
-    NSLog(@"Average energy: %f", averageEnergy);
+    float rms = sqrt(sumSquare / n);
+    float currentLevel = rms / 32767; // Normalize RMS to range 0-1
+    currentLevel = qBound(0.0, currentLevel * 3, 1.0); // make numbers bigger
+    stateInp->currentLevel = currentLevel;
+
+    // Noise estimation and adaptive thresholding
+    if (currentLevel < stateInp->adaptiveThreshold) {
+        stateInp->noiseEstimate = 0.5 * stateInp->noiseEstimate + 0.5 * currentLevel; // Update noise estimate with low-pass filter
+        stateInp->adaptiveThreshold = qBound(stateInp->thresholdMin, stateInp->noiseEstimate * stateInp->thresholdFactor, stateInp->thresholdMax);
+    }
+
+    NSLog(@"Current Level: %f, Noise Estimate: %f, Adaptive Threshold: %f", currentLevel, stateInp->noiseEstimate, stateInp->adaptiveThreshold);
+
+
+    // send level to UI
+    dispatch_async(dispatch_get_main_queue(), ^{
+        emit AudioTranscriptionManager::self()->levelCalculated(currentLevel);
+    });
+
 
     stateInp->n_samples += n;
 
-    if (averageEnergy < stateInp->silenceThreshold) {
+    // Update silence detection
+    if (currentLevel < stateInp->adaptiveThreshold) {
         stateInp->currentSilenceDuration += ((float)n / stateInp->dataFormat.mSampleRate);
     } else {
         stateInp->currentSilenceDuration = 0;
+        stateInp->isSpeechStarted = true;
     }
 
     NSLog(@"Current silence duration: %f", stateInp->currentSilenceDuration);
 
     // Check if it's time to stop capturing
-    if (stateInp->currentSilenceDuration >= stateInp->silenceTimeOut) {
-        NSLog(@"Stopping due to silence.");
+    bool speechDetected = stateInp->isSpeechStarted || MainWindow::self()->getCurrentTranscriptionWordCount() > 1;
+    if (stateInp->currentSilenceDuration >= stateInp->silenceTimeOut && speechDetected) {
+        NSLog(@"Silence detected.");
 
         dispatch_async(dispatch_get_main_queue(), ^{
-            stopAudioCapture();
+            // main window will send current transcription to gpt
+            emit AudioTranscriptionManager::self()->silenceDetected();
+
+            // clear buffers, keep recording
+            stateInp->isSpeechStarted = false;
+            stateInp->currentSilenceDuration = 0.0;
+            clearAudioBuffers();
         });
 
         return;
@@ -298,6 +387,10 @@ void AudioInputCallback(void * inUserData,
         });
     }
 }
+
+
+
+
 
 
 

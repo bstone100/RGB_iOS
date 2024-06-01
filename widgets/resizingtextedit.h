@@ -1,13 +1,13 @@
-#ifndef CHATTEXTEDIT_H
-#define CHATTEXTEDIT_H
+#ifndef RESIZINGTEXTEDIT_H
+#define RESIZINGTEXTEDIT_H
 
 #include <QTextEdit>
 
-class ChatTextEdit : public QTextEdit {
+class ResizingTextEdit : public QTextEdit {
     Q_OBJECT
 
 public:
-    explicit ChatTextEdit(QWidget *parent = nullptr);
+    explicit ResizingTextEdit(QWidget *parent = nullptr);
 
     void updateHeight();
 
@@ -26,4 +26,4 @@ private:
 
 };
 
-#endif // CHATTEXTEDIT_H
+#endif // RESIZINGTEXTEDIT_H

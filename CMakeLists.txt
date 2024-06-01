@@ -26,14 +26,7 @@ set(CMAKE_CXX_VISIBILITY_PRESET default)
 # Determine the platform and set the appropriate icon file
 if(APPLE)
     if(IOS)
-        # Provide the launch screen and app icon asset catalog to Xcode such that they get included in copied bundles
-        set(RESOURCE_ASSETS
-            "${CMAKE_CURRENT_SOURCE_DIR}/iOS/LaunchScreen.storyboard"
-            "${CMAKE_CURRENT_SOURCE_DIR}/iOS/AppIconSet.xcassets"
-            "${CMAKE_CURRENT_SOURCE_DIR}/whisper.cpp/models/ggml-base.en.bin"
-            "${CMAKE_CURRENT_SOURCE_DIR}/whisper.cpp/models/ggml-base.en-encoder.mlmodelc"
-            "${CMAKE_CURRENT_SOURCE_DIR}/whisper.cpp/ggml-metal.metal"
-        )
+
     else() # Assuming macOS if not iOS
         set(app_icon "${CMAKE_CURRENT_SOURCE_DIR}/images/rgb.icns")
         set(MACOSX_BUNDLE_ICON_FILE rgb.icns)
@@ -41,6 +34,16 @@ if(APPLE)
         set_source_files_properties(${app_icon} PROPERTIES
                    MACOSX_PACKAGE_LOCATION "Resources")
     endif()
+
+    # Provide assets to Xcode such that they get included in copied bundles
+    set(RESOURCE_ASSETS
+        "${CMAKE_CURRENT_SOURCE_DIR}/iOS/LaunchScreen.storyboard"
+        "${CMAKE_CURRENT_SOURCE_DIR}/iOS/AppIconSet.xcassets"
+        "${CMAKE_CURRENT_SOURCE_DIR}/whisper.cpp/models/ggml-base.en.bin"
+        "${CMAKE_CURRENT_SOURCE_DIR}/whisper.cpp/models/ggml-base.en-encoder.mlmodelc"
+        "${CMAKE_CURRENT_SOURCE_DIR}/whisper.cpp/ggml-metal.metal"
+        "${CMAKE_CURRENT_SOURCE_DIR}/whisper.cpp/ggml-common.h"
+    )
 endif()
 
 if (ANDROID)
@@ -71,15 +74,17 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         mainwindow.h
         resources.qrc
         AI/openai_request.h AI/openai_request.cpp AI/openai_message.h AI/openai_message.cpp
-        audio/audiorecorder.cpp audio/audiorecorder.h audio/audiolevel.h audio/audiolevel.cpp
+
         AI/api.h AI/api.cpp
         ${app_icon}
         widgets/sidepanel.h widgets/sidepanel.cpp
         widgets/svgbutton.h widgets/svgbutton.cpp
-        widgets/chattextedit.h widgets/chattextedit.cpp
+        widgets/resizingtextedit.h widgets/resizingtextedit.cpp
         widgets/resizingcombobox.h widgets/resizingcombobox.cpp
         audio/audiolevelcalculator.h audio/audiolevelcalculator.cpp
         macOS/notificationhelper.h macOS/notificationhelper.mm
+        widgets/lightstripwidget.h widgets/lightstripwidget.cpp
+        widgets/microphonewidget.h widgets/microphonewidget.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET Intellilights APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -110,22 +115,25 @@ if(APPLE)
             iOS/hapticfeedbackhelper.mm iOS/hapticfeedback.h
             iOS/AudioSessionHelper.h iOS/AudioSessionHelper.mm
             iOS/DarkModeDetector.h iOS/DarkModeDetector.mm
-            macOS/AudioRecorderBridge.h macOS/AudioRecorderBridge.mm
             audio/whisperinterface.h audio/whisperinterface.mm
             audio/audiotranscriptionmanager.h audio/audiotranscriptionmanager.cpp
             ${RESOURCE_ASSETS}
         )
-        set_source_files_properties(${RESOURCE_ASSETS}
-                TARGET_DIRECTORY Intellilights
-                PROPERTIES
-                    MACOSX_PACKAGE_LOCATION Resources
-        )
+
     else() # Assuming macOS if not iOS
         target_sources(Intellilights PRIVATE
             macOS/MacThemeDetector.h macOS/MacThemeDetector.mm
-            macOS/AudioRecorderBridge.h macOS/AudioRecorderBridge.mm
+            audio/whisperinterface.h audio/whisperinterface.mm
+            audio/audiotranscriptionmanager.h audio/audiotranscriptionmanager.cpp
+            ${RESOURCE_ASSETS}
         )
     endif()
+
+    set_source_files_properties(${RESOURCE_ASSETS}
+            TARGET_DIRECTORY Intellilights
+            PROPERTIES
+                MACOSX_PACKAGE_LOCATION Resources
+    )
 endif()
 
 
@@ -138,7 +146,9 @@ endif()
 if(APPLE)
     find_library(AVFOUNDATION_FRAMEWORK AVFoundation)
     find_library(COREAUDIO_FRAMEWORK CoreAudio)
+    find_library(AUDIOTOOLBOX_FRAMEWORK AudioToolbox)
     find_library(USER_NOTIFICATIONS_FRAMEWORK UserNotifications)
+
 endif()
 
 target_link_libraries(Intellilights PRIVATE
@@ -150,6 +160,7 @@ target_link_libraries(Intellilights PRIVATE
     ${UIKIT_LIBRARY}
     ${AVFOUNDATION_FRAMEWORK}
     ${COREAUDIO_FRAMEWORK}
+    ${AUDIOTOOLBOX_FRAMEWORK}
     ${USER_NOTIFICATIONS_FRAMEWORK}
 )
 

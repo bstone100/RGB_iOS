@@ -2,6 +2,7 @@
 #define AUDIOTRANSCRIPTIONMANAGER_H
 
 #include <QObject>
+#include "QTimer"
 
 class AudioTranscriptionManager : public QObject {
     Q_OBJECT
@@ -13,14 +14,18 @@ public:
     void start();
     void stop();
 
-    static void transcriptionUpdated(const char *result);
-
 signals:
-    void transcriptionReceived(const QString &transcription);
+    void transcriptionUpdated(const QString &transcription);
+    void silenceDetected();
+    void levelCalculated(const float level);
+    void timeLimitReached();
 
 private:
     static AudioTranscriptionManager *singleton;
     void init();
+
+    void updateLevel();
+    QTimer updateLevelTimer;
 };
 
 #endif // AUDIOTRANSCRIPTIONMANAGER_H

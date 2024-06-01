@@ -9,7 +9,7 @@ class OpenAIRequest;
 struct APITool {
     typedef QString (*FunctionPtr)(const QJsonObject &);
 
-    FunctionPtr function;
+    FunctionPtr function = NULL;
     QJsonObject description;
 
     bool isValid() const {
@@ -38,8 +38,28 @@ public:
     static void processToolCalls(const QJsonArray &toolCalls, OpenAIRequest *chatRequest);
     static void printToolCall(const QString &name, const QJsonObject &args);
 
+    // the tools
+    static QString setSolidColor(const QJsonObject &jsonObject);
+    static QString startFadeOnAndOff(const QJsonObject &jsonObject);
+    static QString startFlashOnAndOff(const QJsonObject &jsonObject);
+    static QString startRotateWithFade(const QJsonObject &jsonObject);
+    static QString startRotateWithoutFade(const QJsonObject &jsonObject);
+    static QString startPulse(const QJsonObject &jsonObject);
+    static QString dimLights(const QJsonObject &jsonObject);
+    static QString brightenLights(const QJsonObject &jsonObject);
+
+    // convenience
+    static QList<QColor> extractColorsFromJson(const QJsonObject &jsonObject, const QString &key);
+
 private:
     static QList<APITool> toolList;
 };
 
 #endif // API_H
+
+
+
+
+
+
+

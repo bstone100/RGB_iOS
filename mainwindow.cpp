@@ -7,15 +7,13 @@
 #include "QDir"
 #include "QComboBox"
 #include "QtCore/qjsondocument.h"
-#include "audio/audiorecorder.h"
 #include "QTimer"
 #include "QJsonObject"
 #include "widgets/sidepanel.h"
 #include "QSvgRenderer"
 #include "widgets/svgbutton.h"
 #include "QButtonGroup"
-#include "audio/audiolevel.h"
-#include "widgets/chattextedit.h"
+#include "widgets/resizingtextedit.h"
 #include "QGraphicsOpacityEffect"
 #include "QParallelAnimationGroup"
 #include "QGroupBox"
@@ -25,6 +23,9 @@
 #include "QAudioFormat"
 #include "QThread"
 #include "audio/audiotranscriptionmanager.h"
+#include "widgets/lightstripwidget.h"
+#include <QRegularExpression>
+#include "widgets/microphonewidget.h"
 
 
 #if defined(Q_OS_IOS)
@@ -80,13 +81,17 @@ MainWindow::MainWindow(QWidget *parent)
 
     layout = new QVBoxLayout(centralWidget);
 
-    microphoneButton = new QPushButton(this);
-    microphoneButton->setText("🎤");
+    transcriptionTextEdit = new ResizingTextEdit(this);
+    transcriptionTextEdit->setAcceptRichText(false);
+    transcriptionTextEdit->setReadOnly(true);
+    transcriptionTextEdit->setTextInteractionFlags(Qt::NoTextInteraction);
+    transcriptionTextEdit->setMinHeight(60);
+    transcriptionTextEdit->setMaxHeight(200);
 
-    transcriptionLabel = new QLabel("Transcription goes here.", this);
-
-    connect(microphoneButton, &QPushButton::clicked, AudioTranscriptionManager::self(), &AudioTranscriptionManager::start);
-    connect(AudioTranscriptionManager::self(), &AudioTranscriptionManager::transcriptionReceived, this, &MainWindow::updateTranscriptionLabel);
+    connect(MicrophoneWidget::self(), &MicrophoneWidget::clicked, AudioTranscriptionManager::self(), &AudioTranscriptionManager::start);
+    connect(AudioTranscriptionManager::self(), &AudioTranscriptionManager::transcriptionUpdated, this, &MainWindow::updateTranscriptionText);
+    connect(AudioTranscriptionManager::self(), &AudioTranscriptionManager::silenceDetected, this, &MainWindow::sendChat);
+    connect(AudioTranscriptionManager::self(), &AudioTranscriptionManager::timeLimitReached, this, &MainWindow::handleAudioTimeLimit);
 
 
     themeComboBox = new ResizingComboBox(SidePanel::self());
@@ -183,13 +188,15 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Adding layouts and widgets to the main layout
     layout->addLayout(topRowLayout);
+    layout->addWidget(LightStripWidget::self());
     layout->addStretch();
-    layout->addWidget(microphoneButton);
-    layout->addWidget(transcriptionLabel);
+    layout->addWidget(MicrophoneWidget::self());
+    layout->addWidget(transcriptionTextEdit);
 
     auto margins = layout->contentsMargins();
     margins.setTop(0);
     layout->setContentsMargins(margins);
+    layout->setAlignment(MicrophoneWidget::self(), Qt::AlignHCenter);
 
     loadSettings();
 }
@@ -211,22 +218,27 @@ MainWindow *MainWindow::self()
 
 void MainWindow::sendChat()
 {
-    // this will be filled by the listener
-    QString audioBuffer;
-
-    if (audioBuffer == "") return;
+    if (transcriptionTextEdit->toPlainText() == "") return;
 
     OpenAIMessage *userMessage = new OpenAIMessage("", OpenAIMessage::Role::User);
-    userMessage->setUserMessage(audioBuffer);
+    userMessage->setUserMessage(transcriptionTextEdit->toPlainText());
     userMessage->addTimestamp();
-    audioBuffer.clear();
+
+    transcriptionBeginning.clear();
+    transcriptionCurrent.clear();
+
+    // fade out label and clear it once faded
+    auto anim = fadeOutWidget(transcriptionTextEdit, 500);
+    connect(anim, &QPropertyAnimation::finished, this, [&]{
+        transcriptionTextEdit->clear();
+        fadeInWidget(transcriptionTextEdit, 0);
+    });
 
     chatRequest->setModel("gpt-4o");
 
     chatRequest->addMessage(userMessage);
     chatRequest->execute();
 }
-
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
@@ -436,7 +448,7 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 }
 
 
-void MainWindow::fadeInWidget(QWidget* widget, int duration) {
+QPropertyAnimation *MainWindow::fadeInWidget(QWidget* widget, int duration) {
     QGraphicsOpacityEffect* effect = qobject_cast<QGraphicsOpacityEffect*>(widget->graphicsEffect());
     if (!effect) {
         effect = new QGraphicsOpacityEffect(widget);
@@ -460,9 +472,11 @@ void MainWindow::fadeInWidget(QWidget* widget, int duration) {
 
     widget->show(); // Ensure the widget is visible
     animation->start(QPropertyAnimation::DeleteWhenStopped); // Clean up animation when done
+
+    return animation;
 }
 
-void MainWindow::fadeOutWidget(QWidget* widget, int duration) {
+QPropertyAnimation *MainWindow::fadeOutWidget(QWidget* widget, int duration) {
     QGraphicsOpacityEffect* effect = qobject_cast<QGraphicsOpacityEffect*>(widget->graphicsEffect());
     if (!effect) {
         effect = new QGraphicsOpacityEffect(widget);
@@ -481,6 +495,8 @@ void MainWindow::fadeOutWidget(QWidget* widget, int duration) {
     }
     widget->setEnabled(false);
     animation->start(QPropertyAnimation::DeleteWhenStopped); // Clean up animation when done
+
+    return animation;
 }
 
 void MainWindow::fadeInWidgets(QList<QWidget *> widgets, int duration)
@@ -563,10 +579,42 @@ void MainWindow::touchEvent(QTouchEvent *event)
     }
 }
 
-void MainWindow::updateTranscriptionLabel(QString text)
+// called repeatedly during recording
+void MainWindow::updateTranscriptionText(QString text)
 {
-    transcriptionLabel->setText(text);
+    text = text.trimmed();
+    if (text == "you" || text == "." || text == "You") {
+        text = ""; // avoid showing common hallucinations of silence
+    }
+
+    transcriptionCurrent = text;
+    transcriptionTextEdit->setText(transcriptionBeginning + transcriptionCurrent);
 }
+
+void MainWindow::handleAudioTimeLimit()
+{
+    transcriptionBeginning += transcriptionCurrent;
+    transcriptionCurrent.clear();
+
+    QChar lastChar = transcriptionBeginning[transcriptionBeginning.length() - 1];
+
+    // Check if the last character is not a typical sentence ending punctuation
+    if (lastChar != '.' && lastChar != '?' && lastChar != '!')
+    {
+        transcriptionBeginning += ". "; // Append a period and a space if there's no ending punctuation
+    }
+}
+
+int MainWindow::getCurrentTranscriptionWordCount()
+{
+    // Split the text by any sequence of non-word characters
+    static QRegularExpression regex("\\W+");
+    QStringList words = transcriptionTextEdit->toPlainText().split(regex, Qt::SkipEmptyParts);
+    return words.count();
+}
+
+
+
 
 
 

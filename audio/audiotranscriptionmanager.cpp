@@ -3,6 +3,7 @@
 #include "QPermission"
 #include <QMessageBox>
 #include <QApplication>
+#include "../widgets/microphonewidget.h"
 
 // android and others will have equivalent file
 #include "whisperinterface.h"
@@ -16,8 +17,12 @@ AudioTranscriptionManager::AudioTranscriptionManager() {
 
     init();
 
-    registerTranscriptionUpdateCallback(transcriptionUpdated);
     setupAudioCapture();
+
+    updateLevelTimer.setSingleShot(false);
+    updateLevelTimer.setInterval(10);
+
+    connect(&updateLevelTimer, &QTimer::timeout, this, &AudioTranscriptionManager::updateLevel);
 }
 
 AudioTranscriptionManager *AudioTranscriptionManager::self()
@@ -47,13 +52,27 @@ void AudioTranscriptionManager::init()
 
 void AudioTranscriptionManager::start() {
     startAudioCapture();
+    updateLevelTimer.start();
 }
 
 void AudioTranscriptionManager::stop() {
+    updateLevelTimer.stop();
     stopAudioCapture();
 }
 
-void AudioTranscriptionManager::transcriptionUpdated(const char *result) {
-    // Ensure this is thread-safe if called from a different thread
-    emit AudioTranscriptionManager::self()->transcriptionReceived(QString::fromUtf8(result));
+void AudioTranscriptionManager::updateLevel()
+{
+    float level = getCurrentLevel();
+    level = qBound(0.0, level * 3, 1.0); // make number bigger
+    MicrophoneWidget::self()->setLevel(level);
 }
+
+
+
+
+
+
+
+
+
+

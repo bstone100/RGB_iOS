@@ -22,7 +22,7 @@
 class OpenAIRequest;
 class AudioRecorder;
 class SvgButton;
-class ChatTextEdit;
+class ResizingTextEdit;
 class AudioLevel;
 class ResizingComboBox;
 
@@ -53,12 +53,14 @@ public:
     bool isSystemDark();
     void handleThemeChange(bool isDarkMode);
 
-    void fadeInWidget(QWidget *widget, int duration);
-    void fadeOutWidget(QWidget *widget, int duration);
+    QPropertyAnimation *fadeInWidget(QWidget *widget, int duration);
+    QPropertyAnimation *fadeOutWidget(QWidget *widget, int duration);
     void fadeInWidgets(QList<QWidget *> widgets, int duration);
     void fadeOutWidgets(QList<QWidget *> widgets, int duration);
     void setWidgetOpacity(QWidget *widget, double opacity);
     double getWidgetOpacity(QWidget *widget);
+
+    int getCurrentTranscriptionWordCount();
 
 
 protected:
@@ -100,11 +102,13 @@ private:
     Gesture currentGesture = Undefined;
 
     // audio
+    ResizingTextEdit *transcriptionTextEdit;
 
-    QPushButton *microphoneButton;
-    QLabel *transcriptionLabel;
+    void updateTranscriptionText(QString text);
+    void handleAudioTimeLimit();
 
-    void updateTranscriptionLabel(QString text);
+    QString transcriptionBeginning;
+    QString transcriptionCurrent;
 
 };
 
