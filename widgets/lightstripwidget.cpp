@@ -30,7 +30,7 @@ LightStripWidget::LightStripWidget(QWidget *parent) : QWidget(parent),
 
     connect(timer, &QTimer::timeout, this, &LightStripWidget::updateAnimation);
 
-    setMinimumSize(200, 50);
+    setMinimumSize(200, 30);
     setSolidColor(Qt::white);
 }
 

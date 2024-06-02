@@ -43,7 +43,7 @@ QString MainWindow::currentPath;
 QColor MainWindow::lightColor = 0xE9E9EB;
 QColor MainWindow::lightMidColor = 0x2a284c;
 QColor MainWindow::darkMidColor = 0x220f30;
-QColor MainWindow::darkColor = 0x0b1123;
+QColor MainWindow::darkColor = 0x081f30;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -308,7 +308,7 @@ void MainWindow::setDarkMode(bool isDarkMode)
 
         // this lets us use just one stylesheet and change its colors at runtime
         if (isDarkMode) {
-            static QColor sidePanelColorDark = 0x373C4B;
+            static QColor sidePanelColorDark = 0x021527;
             static QColor menuBorderColorDark = 0x7A71E7;
             static QColor menuItemSelectedColorDark = 0x5A4EA6;
             static QColor menuItemDisabledColorDark = 0xA095C7;

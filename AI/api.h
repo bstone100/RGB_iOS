@@ -39,6 +39,7 @@ public:
     static void printToolCall(const QString &name, const QJsonObject &args);
 
     // the tools
+    static QString togglePower(const QJsonObject &jsonObject);
     static QString setSolidColor(const QJsonObject &jsonObject);
     static QString startFadeOnAndOff(const QJsonObject &jsonObject);
     static QString startFlashOnAndOff(const QJsonObject &jsonObject);

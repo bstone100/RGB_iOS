@@ -205,6 +205,29 @@ void API::generateTools()
         {"function", brightenLightsFunctionObject}
     };
     toolList.append(APITool{&API::brightenLights, brightenLightsDescription});
+
+    // Toggle Power
+    QJsonObject togglePowerParametersPropertiesObject {
+        {"power", QJsonObject{
+                      {"type", "boolean"},
+                      {"description", "Boolean value to turn the light strip on (true) or off (false)."}
+                  }}
+    };
+    QJsonObject togglePowerParametersObject {
+        {"type", "object"},
+        {"properties", togglePowerParametersPropertiesObject},
+        {"required", QJsonArray{"power"}}
+    };
+    QJsonObject togglePowerFunctionObject {
+        {"name", "togglePower"},
+        {"description", "Toggle the power state of the light strip."},
+        {"parameters", togglePowerParametersObject}
+    };
+    QJsonObject togglePowerDescription {
+        {"type", "function"},
+        {"function", togglePowerFunctionObject}
+    };
+    toolList.append(APITool{&API::togglePower, togglePowerDescription});
 }
 
 
@@ -276,6 +299,12 @@ void API::printToolCall(const QString &name, const QJsonObject &args)
 }
 
 
+QString API::togglePower(const QJsonObject &jsonObject)
+{
+    bool power = jsonObject["power"].toBool();
+    LightStripWidget::self()->togglePower(power);
+    return "Power toggled successfully";
+}
 
 QString API::setSolidColor(const QJsonObject &jsonObject) {
     QColor color(jsonObject["color"].toString());

@@ -34,6 +34,8 @@ public:
     QJsonObject getJsonObject();
     void loadJsonObject(const QJsonObject &jObj);
 
+    void togglePower(bool power);
+
     void startEffect(Effect effect);
     void startTestEffect(Effect effect);
 
@@ -76,9 +78,6 @@ private:
 
     static QColor blendColors(const QColor &startColor, const QColor &endColor, double progress);
     static double linearlyInterpolate(double startVal, double endVal, double progress);
-
-public slots:
-    void togglePower(bool power);
 };
 
 #endif // LIGHTSTRIPWIDGET_H
