@@ -6,7 +6,6 @@
 #include "QMenuBar"
 #include "QDir"
 #include "QComboBox"
-#include "QtCore/qjsondocument.h"
 #include "QTimer"
 #include "QJsonObject"
 #include "widgets/sidepanel.h"
@@ -26,6 +25,7 @@
 #include "widgets/lightstripwidget.h"
 #include <QRegularExpression>
 #include "widgets/microphonewidget.h"
+#include "QLabel"
 
 
 #if defined(Q_OS_IOS)
@@ -34,6 +34,7 @@
 #elif defined(Q_OS_MACOS)
 #include "macOS/MacThemeDetector.h"
 #endif
+
 
 MainWindow *MainWindow::singleton = NULL;
 QString MainWindow::version = PROJECT_VERSION;
@@ -97,7 +98,7 @@ MainWindow::MainWindow(QWidget *parent)
     themeComboBox = new ResizingComboBox(SidePanel::self());
     QStringList themes = {tr("Light"), tr("Dark"), tr("Auto")};
     themeComboBox->addItems(themes);
-    connect(themeComboBox, &QComboBox::currentTextChanged, this, [=]{
+    connect(themeComboBox, &QComboBox::currentTextChanged, this, [&]{
         int index = themeComboBox->currentIndex();
         if (index == 0) {
             isAutoTheme = false;
@@ -112,9 +113,19 @@ MainWindow::MainWindow(QWidget *parent)
         saveSettings();
     });
 
+    effectComboBox = new ResizingComboBox(SidePanel::self());
+    effectComboBox->addItems(LightStripWidget::getEffectList());
+    connect(effectComboBox, &QComboBox::currentTextChanged, this, [&](QString text){
+        LightStripWidget::Effect effect = LightStripWidget::effectFromString(text);
+        LightStripWidget::self()->startTestEffect(effect);
+        saveSettings();
+    });
+
+
 // fixes mac combo box behavior
 #if defined(Q_OS_MACOS)
     themeComboBox->setStyleSheet("combobox-popup: 0;");
+    effectComboBox->setStyleSheet("combobox-popup: 0;");
 #endif
 
 
@@ -160,11 +171,18 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Group box for theme settings
     auto appearanceGroupBox = new QGroupBox(tr("Appearance"));
-    QHBoxLayout *appearanceLayout = new QHBoxLayout;
-    QLabel *themeLabel = new QLabel(tr("Theme:"));
+    auto appearanceLayout = new QHBoxLayout;
+    auto themeLabel = new QLabel(tr("Theme:"));
     appearanceLayout->addWidget(themeLabel);
     appearanceLayout->addWidget(themeComboBox);
     appearanceGroupBox->setLayout(appearanceLayout);
+
+    auto lightingGroupBox = new QGroupBox(tr("Lighting"));
+    auto lightingLayout = new QHBoxLayout;
+    auto effectLabel = new QLabel(tr("Effect:"));
+    lightingLayout->addWidget(effectLabel);
+    lightingLayout->addWidget(effectComboBox);
+    lightingGroupBox->setLayout(lightingLayout);
 
 
     QString credits = QString("<p style='line-height: 120%;'>Intellilights v%1<br/>© 2024 Benjamin Stone</p>").arg(version);
@@ -177,6 +195,7 @@ MainWindow::MainWindow(QWidget *parent)
     vLayout->setSpacing(20); // Adjust the spacing as needed
     vLayout->addWidget(titleLabel);
     vLayout->addWidget(appearanceGroupBox);
+    vLayout->addWidget(lightingGroupBox);
     vLayout->addStretch();
     vLayout->addWidget(creditLabel);
 
@@ -337,6 +356,8 @@ void MainWindow::saveSettings()
 
     settings->setValue("onboarded", onboarded);
 
+    settings->setValue("lightStripWidget", LightStripWidget::self()->getJsonObject());
+
     settings->setValue("mainWindow/geometry", saveGeometry());
     settings->setValue("mainWindow/windowState", saveState());
 }
@@ -363,6 +384,10 @@ void MainWindow::loadSettings()
     onboarded = settings->value("onboarded", false).toBool();
     // do something here if user hasn't been onboarded
     onboarded = true;
+
+    LightStripWidget::self()->loadJsonObject(settings->value("lightStripWidget").toJsonObject());
+
+    effectComboBox->setCurrentIndex(LightStripWidget::self()->getCurrentEffect());
 
     restoreGeometry(settings->value("mainWindow/geometry").toByteArray());
     restoreState(settings->value("mainWindow/windowState").toByteArray());

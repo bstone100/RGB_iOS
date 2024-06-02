@@ -11,8 +11,6 @@
 #include <QTouchEvent>
 #include "QTextEdit"
 #include "QStackedWidget"
-#include "QtWidgets/qlabel.h"
-#include "qelapsedtimer.h"
 #include "qpropertyanimation.h"
 #include "QQueue"
 #include "QTableView"
@@ -83,6 +81,7 @@ private:
     QVBoxLayout *layout;
 
     ResizingComboBox *themeComboBox;
+    ResizingComboBox *effectComboBox;
 
     QString apiKey;
     bool isDarkMode;

@@ -286,14 +286,14 @@ QString API::setSolidColor(const QJsonObject &jsonObject) {
 QString API::startFadeOnAndOff(const QJsonObject &jsonObject) {
     QList<QColor> colors = extractColorsFromJson(jsonObject, "colors");
     int interval = jsonObject["interval"].toInt();
-    LightStripWidget::self()->startFadeOnAndOff(colors, interval);
+    LightStripWidget::self()->startFadeOffAndOn(colors, interval);
     return "Fade on and off effect started.";
 }
 
 QString API::startFlashOnAndOff(const QJsonObject &jsonObject) {
     QList<QColor> colors = extractColorsFromJson(jsonObject, "colors");
     int interval = jsonObject["interval"].toInt();
-    LightStripWidget::self()->startFlashOnAndOff(colors, interval);
+    LightStripWidget::self()->startFlashOffAndOn(colors, interval);
     return "Flash on and off effect started.";
 }
 
