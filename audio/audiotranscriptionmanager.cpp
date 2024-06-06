@@ -4,6 +4,7 @@
 #include <QMessageBox>
 #include <QApplication>
 #include "../widgets/microphonewidget.h"
+#include "../mainwindow.h"
 
 // android and others will have equivalent file
 #include "whisperinterface.h"
@@ -50,14 +51,31 @@ void AudioTranscriptionManager::init()
 #endif
 }
 
+void AudioTranscriptionManager::toggleStart()
+{
+    if (!updateLevelTimer.isActive()) {
+        start();
+    } else {
+        stop();
+    }
+}
+
 void AudioTranscriptionManager::start() {
     startAudioCapture();
     updateLevelTimer.start();
+    MicrophoneWidget::self()->expand();
 }
 
 void AudioTranscriptionManager::stop() {
+    MainWindow::self()->sendChat();
+    MicrophoneWidget::self()->collapse();
     updateLevelTimer.stop();
     stopAudioCapture();
+}
+
+bool AudioTranscriptionManager::isRecording()
+{
+    return updateLevelTimer.isActive();
 }
 
 void AudioTranscriptionManager::updateLevel()

@@ -89,7 +89,7 @@ MainWindow::MainWindow(QWidget *parent)
     transcriptionTextEdit->setMinHeight(60);
     transcriptionTextEdit->setMaxHeight(200);
 
-    connect(MicrophoneWidget::self(), &MicrophoneWidget::clicked, AudioTranscriptionManager::self(), &AudioTranscriptionManager::start);
+    connect(MicrophoneWidget::self(), &MicrophoneWidget::clicked, AudioTranscriptionManager::self(), &AudioTranscriptionManager::toggleStart);
     connect(AudioTranscriptionManager::self(), &AudioTranscriptionManager::transcriptionUpdated, this, &MainWindow::updateTranscriptionText);
     connect(AudioTranscriptionManager::self(), &AudioTranscriptionManager::silenceDetected, this, &MainWindow::sendChat);
     connect(AudioTranscriptionManager::self(), &AudioTranscriptionManager::timeLimitReached, this, &MainWindow::handleAudioTimeLimit);
@@ -607,6 +607,14 @@ void MainWindow::touchEvent(QTouchEvent *event)
 // called repeatedly during recording
 void MainWindow::updateTranscriptionText(QString text)
 {
+    // handle transcriptions that finish after the user has pressed the mic to stop recording
+    // block if awaiting and not recording
+    // allow and send if not awaiting and not recording
+    bool awaiting = chatRequest->status() == OpenAIRequest::RequestStatus::InProgress;
+    bool recording = AudioTranscriptionManager::self()->isRecording();
+
+    if (awaiting && !recording) return;
+
     text = text.trimmed();
     if (text == "you" || text == "." || text == "You") {
         text = ""; // avoid showing common hallucinations of silence
@@ -614,6 +622,10 @@ void MainWindow::updateTranscriptionText(QString text)
 
     transcriptionCurrent = text;
     transcriptionTextEdit->setText(transcriptionBeginning + transcriptionCurrent);
+
+    if (!awaiting && !recording) {
+        sendChat();
+    }
 }
 
 void MainWindow::handleAudioTimeLimit()

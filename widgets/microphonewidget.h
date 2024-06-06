@@ -1,6 +1,7 @@
 #ifndef MICROPHONEWIDGET_H
 #define MICROPHONEWIDGET_H
 
+#include "QtCore/qpropertyanimation.h"
 #include <QWidget>
 #include <QPainter>
 #include <QTimer>
@@ -17,6 +18,9 @@ public:
 
     void setLevel(float level);
 
+    void expand();
+    void collapse();
+
 signals:
     void clicked();
 
@@ -28,12 +32,29 @@ protected:
 private:
     static MicrophoneWidget *singleton;
 
+    QPixmap originalImage;
     QPixmap micImage;
     float currentLevel;
 
-    int imageSize;
-
     bool isPressed;
+
+    QTimer updateAnimationTimer;
+    int currentTime;
+    int cycleTime;
+    float progress;
+
+    bool isExpanding;
+    bool isCollapsing;
+
+    int collapsedSize;
+    int expandedSize;
+    int currentSize;
+
+    void updateAnimation();
+
 };
 
 #endif // MICROPHONEWIDGET_H
+
+
+

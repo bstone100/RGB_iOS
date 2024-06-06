@@ -4,6 +4,7 @@
 #include "QDebug"
 #include "audiotranscriptionmanager.h"
 #include "../mainwindow.h"
+#include "QElapsedTimer"
 
 #import <AVFoundation/AVFoundation.h>
 #import <AudioToolbox/AudioQueue.h>
@@ -12,7 +13,7 @@
 #define MAX_AUDIO_SEC 30
 #define SAMPLE_RATE 16000
 
-#define NUM_BYTES_PER_BUFFER 16*1024
+#define NUM_BYTES_PER_BUFFER 32*1024
 
 struct StateInp {
     int ggwaveId;
@@ -45,6 +46,8 @@ struct StateInp {
 };
 
 static StateInp stateInp;
+
+static QElapsedTimer stopwatch;
 
 // Callback function declaration for handling audio input
 static void AudioInputCallback(void *userData, AudioQueueRef queue, AudioQueueBufferRef buffer, const AudioTimeStamp *startTime, UInt32 numPacketDescriptions, const AudioStreamPacketDescription *packetDescs);
@@ -97,7 +100,7 @@ void setupAudioCapture() {
     stateInp.isTranscribing = false;
     stateInp.isRealtime = true;
 
-    stateInp.silenceTimeOut = 1.5; // seconds of silence before stopping
+    stateInp.silenceTimeOut = 2.0; // seconds of silence before stopping
 
     stateInp.thresholdMin = 0.01;      // Prevents the threshold from becoming too low
     stateInp.thresholdMax = 0.1;
@@ -108,6 +111,7 @@ void setupAudioCapture() {
 
 void startAudioCapture() {
     // initiate audio capturing
+    // this is priority over GUI thread
     NSLog(@"Start capturing");
 
     stateInp.n_samples = 0;
@@ -151,16 +155,19 @@ qDebug() << "capturing audio";
 }
 
 void stopAudioCapture() {
-    NSLog(@"Stop capturing");
+    // don't block main thread
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        NSLog(@"Stop capturing");
 
-    stateInp.isCapturing = false;
+        stateInp.isCapturing = false;
 
-    AudioQueueStop(stateInp.queue, true);
-    for (int i = 0; i < NUM_BUFFERS; i++) {
-        AudioQueueFreeBuffer(stateInp.queue, stateInp.buffers[i]);
-    }
+        AudioQueueStop(stateInp.queue, true);
+        for (int i = 0; i < NUM_BUFFERS; i++) {
+            AudioQueueFreeBuffer(stateInp.queue, stateInp.buffers[i]);
+        }
 
-    AudioQueueDispose(stateInp.queue, true);
+        AudioQueueDispose(stateInp.queue, true);
+    });
 }
 
 void clearAudioBuffers() {
@@ -219,6 +226,11 @@ void onTranscribe() {
     if (stateInp.isTranscribing) {
         return;
     }
+
+    if (stopwatch.isValid()) {
+        qDebug() << "Elapsed: " << stopwatch.elapsed();
+    }
+    stopwatch.start();
 
     NSLog(@"Processing %d samples", stateInp.n_samples);
 

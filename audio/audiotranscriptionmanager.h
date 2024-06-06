@@ -11,8 +11,11 @@ public:
     AudioTranscriptionManager();
     static AudioTranscriptionManager *self();
 
+    void toggleStart();
     void start();
     void stop();
+
+    bool isRecording();
 
 signals:
     void transcriptionUpdated(const QString &transcription);

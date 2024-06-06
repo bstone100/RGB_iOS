@@ -52,6 +52,9 @@ public:
 
     Effect getCurrentEffect() const;
 
+    static QColor blendColors(const QColor &startColor, const QColor &endColor, double progress);
+    static double linearlyInterpolate(double startVal, double endVal, double progress);
+
 private:
     static LightStripWidget *singleton;
 
@@ -75,9 +78,6 @@ private:
     bool isBrightening;
 
     void updateAnimation();
-
-    static QColor blendColors(const QColor &startColor, const QColor &endColor, double progress);
-    static double linearlyInterpolate(double startVal, double endVal, double progress);
 };
 
 #endif // LIGHTSTRIPWIDGET_H

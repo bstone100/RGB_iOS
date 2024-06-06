@@ -205,12 +205,14 @@ void LightStripWidget::dimLights() {
 
 // animate up the opacity of the solid color
 void LightStripWidget::brightenLights() {
+    qDebug() << "brighting";
     if (currentEffect == SolidColor && !isDimming && !isBrightening && isDim) {
         isBrightening = true;
 
         cycleTime = 1000;
         currentTime = 0;
         timer->start();
+        qDebug() << "brighting";
     }
 }
 
