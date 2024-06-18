@@ -26,6 +26,7 @@
 #include <QRegularExpression>
 #include "widgets/microphonewidget.h"
 #include "QLabel"
+#include "QJsonDocument"
 
 
 #if defined(Q_OS_IOS)
@@ -116,6 +117,7 @@ MainWindow::MainWindow(QWidget *parent)
     effectComboBox = new ResizingComboBox(SidePanel::self());
     effectComboBox->addItems(LightStripWidget::getEffectList());
     connect(effectComboBox, &QComboBox::currentTextChanged, this, [&](QString text){
+        if (!settingsLoaded) return;
         LightStripWidget::Effect effect = LightStripWidget::effectFromString(text);
         LightStripWidget::self()->startTestEffect(effect);
         saveSettings();
@@ -216,6 +218,7 @@ MainWindow::MainWindow(QWidget *parent)
     margins.setTop(0);
     layout->setContentsMargins(margins);
     layout->setAlignment(MicrophoneWidget::self(), Qt::AlignHCenter);
+    layout->setAlignment(LightStripWidget::self(), Qt::AlignHCenter);
 
     loadSettings();
 }
@@ -473,6 +476,21 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 }
 
 
+void MainWindow::dumpJsonToFile(QJsonObject &jObj, QString fileName)
+{
+    // Convert the QJsonObject to QJsonDocument
+    QJsonDocument jsonDoc(jObj);
+
+    // Save the QJsonDocument to a file
+    QFile file(fileName);
+    if (file.open(QIODevice::WriteOnly)) {
+        file.write(jsonDoc.toJson());
+        file.close();
+    } else {
+        qWarning("Couldn't open file to save JSON data.");
+    }
+}
+
 QPropertyAnimation *MainWindow::fadeInWidget(QWidget* widget, int duration) {
     QGraphicsOpacityEffect* effect = qobject_cast<QGraphicsOpacityEffect*>(widget->graphicsEffect());
     if (!effect) {
@@ -616,7 +634,7 @@ void MainWindow::updateTranscriptionText(QString text)
     if (awaiting && !recording) return;
 
     text = text.trimmed();
-    if (text == "you" || text == "." || text == "You") {
+    if (text == "you" || text == "." || text == "You" || text == "♪♪") {
         text = ""; // avoid showing common hallucinations of silence
     }
 

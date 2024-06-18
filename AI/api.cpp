@@ -45,105 +45,57 @@ void API::generateTools()
     };
     toolList.append(APITool{&API::setSolidColor, setSolidColorDescription});
 
-    // Start Fade On And Off
-    QJsonObject startFadeOnAndOffParametersPropertiesObject {
+    // Start Off and On
+    QJsonObject startOffAndOnParametersPropertiesObject {
         {"colors", QJsonObject{
            {"type", "array"},
            {"items", QJsonObject{{"type", "string"}, {"description", "Hexadecimal color code."}}},
            {"description", "List of colors."}
         }},
-        {"interval", QJsonObject{{"type", "integer"}, {"description", "Time interval in milliseconds for each fade cycle."}}}
+        {"fadeBetweenColors", QJsonObject{{"type", "boolean"}, {"description", "True means fade between the colors."}}},
+        {"interval", QJsonObject{{"type", "integer"}, {"description", "Time interval in milliseconds for each cycle."}}}
     };
-    QJsonObject startFadeOnAndOffParametersObject {
+    QJsonObject startOffAndOnParametersObject {
         {"type", "object"},
-        {"properties", startFadeOnAndOffParametersPropertiesObject},
+        {"properties", startOffAndOnParametersPropertiesObject},
         {"required", QJsonArray{"colors", "interval"}}
     };
-    QJsonObject startFadeOnAndOffFunctionObject {
-        {"name", "startFadeOnAndOff"},
-        {"description", "Start fading the light strip on and off between specified colors."},
-        {"parameters", startFadeOnAndOffParametersObject}
+    QJsonObject startOffAndOnFunctionObject {
+        {"name", "startOffAndOn"},
+        {"description", "Make the light strip repeatedly toggle off and on while cyling between specified colors."},
+        {"parameters", startOffAndOnParametersObject}
     };
-    QJsonObject startFadeOnAndOffDescription {
+    QJsonObject startOffAndOnDescription {
         {"type", "function"},
-        {"function", startFadeOnAndOffFunctionObject}
+        {"function", startOffAndOnFunctionObject}
     };
-    toolList.append(APITool{&API::startFadeOnAndOff, startFadeOnAndOffDescription});
+    toolList.append(APITool{&API::startOffAndOn, startOffAndOnDescription});
 
-    // Start Flash On And Off
-    QJsonObject startFlashOnAndOffParametersPropertiesObject {
-        {"colors", QJsonObject{
-            {"type", "array"},
-            {"items", QJsonObject{{"type", "string"}, {"description", "Hexadecimal color code."}}},
-            {"description", "List of colors."}
-        }},
-        {"interval", QJsonObject{{"type", "integer"}, {"description", "Time interval in milliseconds for each flash cycle."}}}
-    };
-    QJsonObject startFlashOnAndOffParametersObject {
-        {"type", "object"},
-        {"properties", startFlashOnAndOffParametersPropertiesObject},
-        {"required", QJsonArray{"colors", "interval"}}
-    };
-    QJsonObject startFlashOnAndOffFunctionObject {
-        {"name", "startFlashOnAndOff"},
-        {"description", "Start flashing the light strip on and off between specified colors."},
-        {"parameters", startFlashOnAndOffParametersObject}
-    };
-    QJsonObject startFlashOnAndOffDescription {
-        {"type", "function"},
-        {"function", startFlashOnAndOffFunctionObject}
-    };
-    toolList.append(APITool{&API::startFlashOnAndOff, startFlashOnAndOffDescription});
-
-    // Start Rotate With Fade
-    QJsonObject startRotateWithFadeParametersPropertiesObject {
+    // Start Rotate
+    QJsonObject startRotateParametersPropertiesObject {
         {"colors", QJsonObject{
              {"type", "array"},
              {"items", QJsonObject{{"type", "string"}, {"description", "Hexadecimal color code."}}},
              {"description", "List of colors."}
          }},
+        {"fadeBetweenColors", QJsonObject{{"type", "boolean"}, {"description", "True means fade between the colors."}}},
         {"interval", QJsonObject{{"type", "integer"}, {"description", "Interval in milliseconds between rotations."}}}
     };
-    QJsonObject startRotateWithFadeParametersObject {
+    QJsonObject startRotateParametersObject {
         {"type", "object"},
-        {"properties", startRotateWithFadeParametersPropertiesObject},
+        {"properties", startRotateParametersPropertiesObject},
         {"required", QJsonArray{"colors", "interval"}}
     };
-    QJsonObject startRotateWithFadeFunctionObject {
-        {"name", "startRotateWithFade"},
-        {"description", "Rotate the light colors with a fading effect between each color."},
-        {"parameters", startRotateWithFadeParametersObject}
+    QJsonObject startRotateFunctionObject {
+        {"name", "startRotate"},
+        {"description", "Cycle between the specified colors."},
+        {"parameters", startRotateParametersObject}
     };
-    QJsonObject startRotateWithFadeDescription {
+    QJsonObject startRotateDescription {
         {"type", "function"},
-        {"function", startRotateWithFadeFunctionObject}
+        {"function", startRotateFunctionObject}
     };
-    toolList.append(APITool{&API::startRotateWithFade, startRotateWithFadeDescription});
-
-    // Start Rotate Without Fade
-    QJsonObject startRotateWithoutFadeParametersPropertiesObject {
-        {"colors", QJsonObject{
-            {"type", "array"},
-            {"items", QJsonObject{{"type", "string"}, {"description", "Hexadecimal color code."}}},
-            {"description", "List of colors."}
-        }},
-        {"interval", QJsonObject{{"type", "integer"}, {"description", "Interval in milliseconds between color changes."}}}
-    };
-    QJsonObject startRotateWithoutFadeParametersObject {
-        {"type", "object"},
-        {"properties", startRotateWithoutFadeParametersPropertiesObject},
-        {"required", QJsonArray{"colors", "interval"}}
-    };
-    QJsonObject startRotateWithoutFadeFunctionObject {
-        {"name", "startRotateWithoutFade"},
-        {"description", "Rotate the light colors abruptly without any fading effect."},
-        {"parameters", startRotateWithoutFadeParametersObject}
-    };
-    QJsonObject startRotateWithoutFadeDescription {
-        {"type", "function"},
-        {"function", startRotateWithoutFadeFunctionObject}
-    };
-    toolList.append(APITool{&API::startRotateWithoutFade, startRotateWithoutFadeDescription});
+    toolList.append(APITool{&API::startRotate, startRotateDescription});
 
     // Start Pulse
     QJsonObject startPulseParametersPropertiesObject {
@@ -312,32 +264,20 @@ QString API::setSolidColor(const QJsonObject &jsonObject) {
     return "Solid color set successfully.";
 }
 
-QString API::startFadeOnAndOff(const QJsonObject &jsonObject) {
+QString API::startOffAndOn(const QJsonObject &jsonObject) {
     QList<QColor> colors = extractColorsFromJson(jsonObject, "colors");
     int interval = jsonObject["interval"].toInt();
-    LightStripWidget::self()->startFadeOffAndOn(colors, interval);
+    bool fade = jsonObject["fadeBetweenColors"].toBool(true);
+    LightStripWidget::self()->startOffAndOn(colors, interval, fade);
     return "Fade on and off effect started.";
 }
 
-QString API::startFlashOnAndOff(const QJsonObject &jsonObject) {
+QString API::startRotate(const QJsonObject &jsonObject) {
     QList<QColor> colors = extractColorsFromJson(jsonObject, "colors");
     int interval = jsonObject["interval"].toInt();
-    LightStripWidget::self()->startFlashOffAndOn(colors, interval);
-    return "Flash on and off effect started.";
-}
-
-QString API::startRotateWithFade(const QJsonObject &jsonObject) {
-    QList<QColor> colors = extractColorsFromJson(jsonObject, "colors");
-    int interval = jsonObject["interval"].toInt();
-    LightStripWidget::self()->startRotateWithFade(colors, interval);
+    bool fade = jsonObject["fadeBetweenColors"].toBool(true);
+    LightStripWidget::self()->startRotate(colors, interval, fade);
     return "Rotate with fade effect started.";
-}
-
-QString API::startRotateWithoutFade(const QJsonObject &jsonObject) {
-    QList<QColor> colors = extractColorsFromJson(jsonObject, "colors");
-    int interval = jsonObject["interval"].toInt();
-    LightStripWidget::self()->startRotateWithoutFade(colors, interval);
-    return "Rotate without fade effect started.";
 }
 
 QString API::startPulse(const QJsonObject &jsonObject) {
@@ -365,7 +305,7 @@ QList<QColor> API::extractColorsFromJson(const QJsonObject &jsonObject, const QS
     QList<QColor> colors;
     QJsonArray jsonColors = jsonObject[key].toArray();
     for (const auto &jsonVal : jsonColors) {
-    colors.append(QColor(jsonVal.toString()));
+        colors.append(QColor(jsonVal.toString()));
     }
     return colors;
 }

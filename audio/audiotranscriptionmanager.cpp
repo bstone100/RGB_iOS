@@ -70,6 +70,7 @@ void AudioTranscriptionManager::stop() {
     MainWindow::self()->sendChat();
     MicrophoneWidget::self()->collapse();
     updateLevelTimer.stop();
+    MicrophoneWidget::self()->setLevel(0.0);
     stopAudioCapture();
 }
 

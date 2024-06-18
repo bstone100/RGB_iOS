@@ -4,6 +4,8 @@
 #include "../mainwindow.h"
 #include "QJsonObject"
 #include "QtCore/qjsonarray.h"
+#include "QJsonDocument"
+#include "QFile"
 
 #define DIM 0.5
 
@@ -15,6 +17,7 @@ LightStripWidget::LightStripWidget(QWidget *parent) : QWidget(parent),
     currentTime(0),
     isFading(false),
     pulseDirection(true),
+    fadeBetweenColors(true),
     isOn(true),
     currentEffect(SolidColor),
     isDimming(false),
@@ -30,7 +33,7 @@ LightStripWidget::LightStripWidget(QWidget *parent) : QWidget(parent),
 
     connect(timer, &QTimer::timeout, this, &LightStripWidget::updateAnimation);
 
-    setMinimumSize(200, 30);
+    setFixedSize(250, 30);
     setSolidColor(Qt::white);
 }
 
@@ -52,14 +55,10 @@ QString LightStripWidget::effectToString(Effect effect)
     switch (effect) {
     case SolidColor:
         return "SolidColor";
-    case FadeOffAndOn:
-        return "FadeOffAndOn";
-    case FlashOffAndOn:
-        return "FlashOffAndOn";
-    case RotateWithFade:
-        return "RotateWithFade";
-    case RotateWithoutFade:
-        return "RotateWithoutFade";
+    case OffAndOn:
+        return "OffAndOn";
+    case Rotate:
+        return "Rotate";
     case Pulse:
         return "Pulse";
     default:
@@ -71,14 +70,10 @@ LightStripWidget::Effect LightStripWidget::effectFromString(QString text)
 {
     if (text == "SolidColor") {
         return SolidColor;
-    } else if (text == "FadeOffAndOn") {
-        return FadeOffAndOn;
-    } else if (text == "FlashOffAndOn") {
-        return FlashOffAndOn;
-    } else if (text == "RotateWithFade") {
-        return RotateWithFade;
-    } else if (text == "RotateWithoutFade") {
-        return RotateWithoutFade;
+    } else if (text == "OffAndOn") {
+        return OffAndOn;
+    } else if (text == "Rotate") {
+        return Rotate;
     } else if (text == "Pulse") {
         return Pulse;
     } else {
@@ -101,6 +96,7 @@ QJsonObject LightStripWidget::getJsonObject()
 
     jObj["currentEffect"] = effectToString(currentEffect);
     jObj["cycleTime"] = cycleTime;
+    jObj["fadeBetweenColors"] = fadeBetweenColors;
 
     QJsonArray colorsArray;
     for (const QColor &color : colors) {
@@ -122,6 +118,7 @@ void LightStripWidget::loadJsonObject(const QJsonObject &jObj)
     currentEffect = effectFromString(effectString);
 
     cycleTime = jObj.value("cycleTime").toInt(cycleTime);
+    fadeBetweenColors = jObj.value("fadeBetweenColors").toBool(fadeBetweenColors);
 
     QJsonArray colorsArray = jObj.value("colors").toArray();
     colors.clear();
@@ -147,17 +144,11 @@ void LightStripWidget::startEffect(Effect effect)
         currentColor.setAlphaF(isDim ? DIM : 1.0);
         setSolidColor(currentColor);
         break;
-    case FadeOffAndOn:
-        startFadeOffAndOn(colors, cycleTime);
+    case OffAndOn:
+        startOffAndOn(colors, cycleTime, fadeBetweenColors);
         break;
-    case FlashOffAndOn:
-        startFlashOffAndOn(colors, cycleTime);
-        break;
-    case RotateWithFade:
-        startRotateWithFade(colors, cycleTime);
-        break;
-    case RotateWithoutFade:
-        startRotateWithoutFade(colors, cycleTime);
+    case Rotate:
+        startRotate(colors, cycleTime, fadeBetweenColors);
         break;
     case Pulse:
         startPulse(colors, backgroundColor, cycleTime, pulseDirection);
@@ -167,21 +158,16 @@ void LightStripWidget::startEffect(Effect effect)
 
 void LightStripWidget::startTestEffect(Effect effect)
 {
-    switch (effect) {
-    case SolidColor:
-        currentColor = QColorConstants::Svg::purple;
-        break;
-    case FadeOffAndOn:
-    case FlashOffAndOn:
-    case RotateWithFade:
-    case RotateWithoutFade:
-        colors = {QColor("red"), QColor("white"), QColor("blue")};
-        cycleTime = 1000;
-        break;
-    case Pulse:
-        startPulse(colors, backgroundColor, cycleTime, pulseDirection);
-        break;
-    }
+    currentColor = QColorConstants::Svg::purple;
+
+    colors = {QColor("red"), QColor("white"), QColor("blue")};
+    cycleTime = 1000;
+    fadeBetweenColors = true;
+
+    backgroundColor = Qt::black;
+    pulseDirection = true;
+
+    isDim = false;
 
     startEffect(effect);
 }
@@ -217,13 +203,14 @@ void LightStripWidget::brightenLights() {
 }
 
 
-void LightStripWidget::startFadeOffAndOn(const QList<QColor> &colors, int interval) {
+void LightStripWidget::startOffAndOn(const QList<QColor> &colors, int interval, bool fade) {
     if (colors.size() < 1) {
         return;
     }
 
     this->colors = colors;
-    currentEffect = FadeOffAndOn;
+    currentEffect = OffAndOn;
+    fadeBetweenColors = fade;
     currentIndex = 0;
     isFading = true; // start opaque
 
@@ -232,44 +219,17 @@ void LightStripWidget::startFadeOffAndOn(const QList<QColor> &colors, int interv
     timer->start();
 }
 
-void LightStripWidget::startFlashOffAndOn(const QList<QColor> &colors, int interval) {
-    if (colors.size() < 1) {
+// fade between colors
+void LightStripWidget::startRotate(const QList<QColor> &colors, int interval, bool fade) {
+    if (colors.size() < 2) { // need at least 2
         return;
     }
 
     this->colors = colors;
-    currentEffect = FlashOffAndOn;
+    currentEffect = Rotate;
+    fadeBetweenColors = fade;
     currentIndex = 0;
     isFading = true;
-
-    cycleTime = interval;
-    currentTime = 0;
-    timer->start();
-}
-
-// fade between colors
-void LightStripWidget::startRotateWithFade(const QList<QColor> &colors, int interval) {
-    if (colors.size() < 2) { // need at least 2
-        return;
-    }
-
-    this->colors = colors;
-    currentEffect = RotateWithFade;
-    currentIndex = 0;
-
-    cycleTime = interval;
-    currentTime = 0;
-    timer->start();
-}
-
-void LightStripWidget::startRotateWithoutFade(const QList<QColor> &colors, int interval) {
-    if (colors.size() < 2) { // need at least 2
-        return;
-    }
-
-    this->colors = colors;
-    currentEffect = RotateWithoutFade;
-    currentIndex = 0;
 
     cycleTime = interval;
     currentTime = 0;
@@ -312,23 +272,25 @@ void LightStripWidget::updateAnimation() {
     }
 
     switch (currentEffect) {
-    case FadeOffAndOn: {
-        currentColor = colors.at(currentIndex);
-        float a = linearlyInterpolate(isFading, !isFading, progress);
-        currentColor.setAlphaF(a);
+    case OffAndOn: {
+        if (fadeBetweenColors) {
+            currentColor = colors.at(currentIndex);
+            float a = linearlyInterpolate(isFading, !isFading, progress);
+            currentColor.setAlphaF(a);
+        } else {
+            currentColor = isFading ? colors.at(currentIndex) : Qt::transparent;
+        }
     }
         break;
-    case FlashOffAndOn:
-        currentColor = isFading ? colors.at(currentIndex) : Qt::transparent;
-        break;
-    case RotateWithFade: {
-        QColor indexedColor = colors.at(currentIndex);
-        QColor nextColor = colors.at((currentIndex + 1) % colors.size());
-        currentColor = blendColors(indexedColor, nextColor, progress);
+    case Rotate: {
+        if (fadeBetweenColors) {
+            QColor indexedColor = colors.at(currentIndex);
+            QColor nextColor = colors.at((currentIndex + 1) % colors.size());
+            currentColor = blendColors(indexedColor, nextColor, progress);
+        } else {
+            currentColor = colors.at(currentIndex);
+        }
     }
-        break;
-    case RotateWithoutFade:
-        currentColor = colors.at(currentIndex);
         break;
     case Pulse:
         currentColor = colors.at(currentIndex);
@@ -343,7 +305,7 @@ void LightStripWidget::updateAnimation() {
         isDimming = false;
         isBrightening = false;
 
-        if (currentEffect == FadeOffAndOn || currentEffect == FlashOffAndOn) {
+        if (currentEffect == OffAndOn) {
             if (isFading) currentIndex = (currentIndex + 1) % colors.size(); // go to next color once faded
         } else {
             currentIndex = (currentIndex + 1) % colors.size(); // go to next color
@@ -366,10 +328,8 @@ void LightStripWidget::paintEvent(QPaintEvent *event) {
     if (isOn) {
         switch (currentEffect) {
         case SolidColor:
-        case FadeOffAndOn:
-        case FlashOffAndOn:
-        case RotateWithFade:
-        case RotateWithoutFade:
+        case OffAndOn:
+        case Rotate:
             painter.fillRect(rect(), currentColor);
             break;
         case Pulse: {

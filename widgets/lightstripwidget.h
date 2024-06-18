@@ -17,10 +17,8 @@ public:
 
     enum Effect {
         SolidColor = 0,
-        FadeOffAndOn,
-        FlashOffAndOn,
-        RotateWithFade,
-        RotateWithoutFade,
+        OffAndOn,
+        Rotate,
         Pulse,
 
         Min = SolidColor,
@@ -43,10 +41,8 @@ public:
     void dimLights();
     void brightenLights();
 
-    void startFadeOffAndOn(const QList<QColor> &colors, int interval);
-    void startFlashOffAndOn(const QList<QColor> &colors, int interval);
-    void startRotateWithFade(const QList<QColor> &colors, int interval);
-    void startRotateWithoutFade(const QList<QColor> &colors, int interval);
+    void startOffAndOn(const QList<QColor> &colors, int interval, bool fade);
+    void startRotate(const QList<QColor> &colors, int interval, bool fade);
     void startPulse(const QList<QColor> &pulseColors, const QColor &backgroundColor, int interval, bool direction);
     void paintEvent(QPaintEvent *event) override;
 
@@ -63,6 +59,7 @@ private:
     int cycleTime;
     float progress;
 
+    bool fadeBetweenColors;
     QList<QColor> colors;
     QColor currentColor;
     QColor backgroundColor;

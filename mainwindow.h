@@ -51,6 +51,7 @@ public:
     bool isSystemDark();
     void handleThemeChange(bool isDarkMode);
 
+    void dumpJsonToFile(QJsonObject &jObj, QString fileName);
     QPropertyAnimation *fadeInWidget(QWidget *widget, int duration);
     QPropertyAnimation *fadeOutWidget(QWidget *widget, int duration);
     void fadeInWidgets(QList<QWidget *> widgets, int duration);

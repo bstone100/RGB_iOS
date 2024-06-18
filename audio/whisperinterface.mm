@@ -145,7 +145,6 @@ void startAudioCapture() {
         status = AudioQueueStart(stateInp.queue, NULL);
         if (status == 0) {
             // we're capturing
-qDebug() << "capturing audio";
         }
     }
 

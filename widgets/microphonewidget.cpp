@@ -5,6 +5,10 @@
 #include "../mainwindow.h"
 #include "lightstripwidget.h"
 
+#if defined(Q_OS_IOS)
+#include "../iOS/hapticfeedback.h"
+#endif
+
 MicrophoneWidget *MicrophoneWidget::singleton = NULL;
 
 MicrophoneWidget::MicrophoneWidget(QWidget *parent) : QWidget(parent), currentLevel(0.0)
@@ -12,6 +16,10 @@ MicrophoneWidget::MicrophoneWidget(QWidget *parent) : QWidget(parent), currentLe
     if (!singleton) {
         singleton = this;
     }
+
+#if defined(Q_OS_IOS)
+    connect(this, &MicrophoneWidget::clicked, this, &generateHapticFeedback);
+#endif
 
     setFixedSize(300, 300);
 
@@ -101,6 +109,7 @@ void MicrophoneWidget::expand()
     if (isCollapsing) {
         updateAnimationTimer.stop();
         currentTime = cycleTime - currentTime;
+        progress = qBound(0.0, (float)currentTime / cycleTime, 1.0);
         isCollapsing = false;
     }
 
@@ -113,6 +122,7 @@ void MicrophoneWidget::collapse()
     if (isExpanding) {
         updateAnimationTimer.stop();
         currentTime = cycleTime - currentTime;
+        progress = qBound(0.0, (float)currentTime / cycleTime, 1.0);
         isExpanding = false;
     }
 

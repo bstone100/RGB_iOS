@@ -41,10 +41,8 @@ public:
     // the tools
     static QString togglePower(const QJsonObject &jsonObject);
     static QString setSolidColor(const QJsonObject &jsonObject);
-    static QString startFadeOnAndOff(const QJsonObject &jsonObject);
-    static QString startFlashOnAndOff(const QJsonObject &jsonObject);
-    static QString startRotateWithFade(const QJsonObject &jsonObject);
-    static QString startRotateWithoutFade(const QJsonObject &jsonObject);
+    static QString startOffAndOn(const QJsonObject &jsonObject);
+    static QString startRotate(const QJsonObject &jsonObject);
     static QString startPulse(const QJsonObject &jsonObject);
     static QString dimLights(const QJsonObject &jsonObject);
     static QString brightenLights(const QJsonObject &jsonObject);
