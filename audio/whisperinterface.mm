@@ -55,7 +55,7 @@ static void AudioInputCallback(void *userData, AudioQueueRef queue, AudioQueueBu
 void setupAudioCapture() {
     // whisper.cpp initialization
     // load the model
-    NSString *modelPath = [[NSBundle mainBundle] pathForResource:@"ggml-base.en" ofType:@"bin"];
+    NSString *modelPath = [[NSBundle mainBundle] pathForResource:@"ggml-tiny-q5_1" ofType:@"bin"];
 
     // check if the model exists
     if (![[NSFileManager defaultManager] fileExistsAtPath:modelPath]) {
@@ -100,7 +100,7 @@ void setupAudioCapture() {
     stateInp.isTranscribing = false;
     stateInp.isRealtime = true;
 
-    stateInp.silenceTimeOut = 2.0; // seconds of silence before stopping
+    stateInp.silenceTimeOut = 1.0; // seconds of silence before stopping
 
     stateInp.thresholdMin = 0.01;      // Prevents the threshold from becoming too low
     stateInp.thresholdMax = 0.1;
@@ -113,6 +113,21 @@ void startAudioCapture() {
     // initiate audio capturing
     // this is priority over GUI thread
     NSLog(@"Start capturing");
+
+#if TARGET_OS_IPHONE
+    NSError *error = nil;
+
+    // Configure the audio session for recording
+    AVAudioSession *session = [AVAudioSession sharedInstance];
+    [session setCategory:AVAudioSessionCategoryRecord error:&error];
+    [session setMode:AVAudioSessionModeDefault error:&error];
+    [session setActive:YES withOptions:0 error:&error];
+
+    if (error) {
+        NSLog(@"Error configuring audio session: %@", error);
+        return;
+    }
+#endif
 
     stateInp.n_samples = 0;
     stateInp.currentSilenceDuration = 0.0;
@@ -254,7 +269,8 @@ void onTranscribe() {
         params.print_timestamps = true;
         params.print_special    = false;
         params.translate        = false;
-        params.language         = "en";
+//        params.language         = "en";
+        params.language = nullptr;
         params.n_threads        = max_threads;
         params.offset_ms        = 0;
         params.no_context       = true;

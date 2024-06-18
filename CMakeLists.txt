@@ -39,8 +39,8 @@ if(APPLE)
     set(RESOURCE_ASSETS
         "${CMAKE_CURRENT_SOURCE_DIR}/iOS/LaunchScreen.storyboard"
         "${CMAKE_CURRENT_SOURCE_DIR}/iOS/AppIconSet.xcassets"
-        "${CMAKE_CURRENT_SOURCE_DIR}/whisper.cpp/models/ggml-base.en.bin"
-        "${CMAKE_CURRENT_SOURCE_DIR}/whisper.cpp/models/ggml-base.en-encoder.mlmodelc"
+        "${CMAKE_CURRENT_SOURCE_DIR}/whisper.cpp/models/ggml-tiny-q5_1.bin"
+        "${CMAKE_CURRENT_SOURCE_DIR}/whisper.cpp/models/ggml-tiny-encoder.mlmodelc"
         "${CMAKE_CURRENT_SOURCE_DIR}/whisper.cpp/ggml-metal.metal"
         "${CMAKE_CURRENT_SOURCE_DIR}/whisper.cpp/ggml-common.h"
     )
