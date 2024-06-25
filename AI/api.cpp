@@ -7,6 +7,7 @@
 #include "QtCore/qjsondocument.h"
 #include "../mainwindow.h"
 #include "../widgets/lightstripwidget.h"
+#include "../bluetoothmanager.h"
 
 QList<APITool> API::toolList = {};
 
@@ -237,6 +238,7 @@ void API::processToolCalls(const QJsonArray &toolCalls, OpenAIRequest *chatReque
     // request that the responses be summarized or that more function calls be made
     chatRequest->execute();
 
+    BluetoothManager::self()->sendCurrentState();
     MainWindow::self()->saveSettings();
 }
 

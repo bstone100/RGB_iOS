@@ -59,8 +59,8 @@ if (ANDROID)
     include(${android_openssl_SOURCE_DIR}/android_openssl.cmake)
 endif()
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network Multimedia Svg)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Multimedia Svg)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network Multimedia Svg Bluetooth)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Multimedia Svg Bluetooth)
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Force static libraries" FORCE)
 add_subdirectory(whisper.cpp)
@@ -85,6 +85,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         macOS/notificationhelper.h macOS/notificationhelper.mm
         widgets/lightstripwidget.h widgets/lightstripwidget.cpp
         widgets/microphonewidget.h widgets/microphonewidget.cpp
+        bluetoothmanager.h bluetoothmanager.cpp
+        libraries/easing.h libraries/easing.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET Intellilights APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -156,6 +158,7 @@ target_link_libraries(Intellilights PRIVATE
     Qt${QT_VERSION_MAJOR}::Network
     Qt${QT_VERSION_MAJOR}::Multimedia
     Qt${QT_VERSION_MAJOR}::Svg
+    Qt${QT_VERSION_MAJOR}::Bluetooth
     whisper
     ${UIKIT_LIBRARY}
     ${AVFOUNDATION_FRAMEWORK}

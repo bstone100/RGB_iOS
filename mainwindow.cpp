@@ -400,6 +400,10 @@ void MainWindow::loadSettings()
         // cache the side panel widgets proper geometry
         SidePanel::self()->saveOpenChildWidgetGeometry();
 #endif
+        // FOR TESTING
+//        LightStripWidget::Effect effect = LightStripWidget::self()->getCurrentEffect();
+//        LightStripWidget::self()->startTestEffect(effect);
+//        saveSettings();
     });
 
     settingsLoaded = true;

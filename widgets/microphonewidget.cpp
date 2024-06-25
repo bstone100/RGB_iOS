@@ -137,9 +137,9 @@ void MicrophoneWidget::updateAnimation()
 
     // scale image based on progress
     if (isExpanding) {
-        currentSize = LightStripWidget::linearlyInterpolate(collapsedSize, expandedSize, progress);
+        currentSize = LightStripWidget::interpolate(collapsedSize, expandedSize, progress);
     } else {
-        currentSize = LightStripWidget::linearlyInterpolate(expandedSize, collapsedSize, progress);
+        currentSize = LightStripWidget::interpolate(expandedSize, collapsedSize, progress);
     }
     qreal ratio = devicePixelRatioF();
     micImage = originalImage.scaled(currentSize * ratio, currentSize * ratio, Qt::KeepAspectRatio, Qt::SmoothTransformation);

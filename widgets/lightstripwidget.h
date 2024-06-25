@@ -5,6 +5,7 @@
 #include <QColor>
 #include <QTimer>
 #include <vector>
+#include "../libraries/easing.h"
 
 class LightStripWidget : public QWidget {
     Q_OBJECT
@@ -48,8 +49,8 @@ public:
 
     Effect getCurrentEffect() const;
 
-    static QColor blendColors(const QColor &startColor, const QColor &endColor, double progress);
-    static double linearlyInterpolate(double startVal, double endVal, double progress);
+    static QColor blendColors(const QColor &startColor, const QColor &endColor, double progress, EaseType easeType = Linear);
+    static double interpolate(double startVal, double endVal, double progress, EaseType easeType = Linear);
 
 private:
     static LightStripWidget *singleton;
@@ -59,6 +60,7 @@ private:
     int cycleTime;
     float progress;
 
+    EaseType easeType;
     bool fadeBetweenColors;
     QList<QColor> colors;
     QColor currentColor;

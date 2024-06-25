@@ -21,7 +21,8 @@ LightStripWidget::LightStripWidget(QWidget *parent) : QWidget(parent),
     isOn(true),
     currentEffect(SolidColor),
     isDimming(false),
-    isBrightening(false)
+    isBrightening(false),
+    easeType(Linear)
 {
     if (!singleton) {
         singleton = this;
@@ -97,6 +98,9 @@ QJsonObject LightStripWidget::getJsonObject()
     jObj["currentEffect"] = effectToString(currentEffect);
     jObj["cycleTime"] = cycleTime;
     jObj["fadeBetweenColors"] = fadeBetweenColors;
+    jObj["easeType"] = (int)easeType;
+
+    jObj["currentColor"] = currentColor.name();
 
     QJsonArray colorsArray;
     for (const QColor &color : colors) {
@@ -108,6 +112,7 @@ QJsonObject LightStripWidget::getJsonObject()
     jObj["pulseDirection"] = pulseDirection;
 
     jObj["isDim"] = isDim;
+    jObj["isOn"] = isOn;
 
     return jObj;
 }
@@ -119,6 +124,9 @@ void LightStripWidget::loadJsonObject(const QJsonObject &jObj)
 
     cycleTime = jObj.value("cycleTime").toInt(cycleTime);
     fadeBetweenColors = jObj.value("fadeBetweenColors").toBool(fadeBetweenColors);
+    easeType = (EaseType)jObj.value("easeType").toInt(0);
+
+    currentColor = QColor(jObj.value("currentColor").toString(currentColor.name()));
 
     QJsonArray colorsArray = jObj.value("colors").toArray();
     colors.clear();
@@ -133,6 +141,7 @@ void LightStripWidget::loadJsonObject(const QJsonObject &jObj)
     pulseDirection = jObj.value("pulseDirection").toBool(pulseDirection);
 
     isDim = jObj.value("isDim").toBool(isDim);
+    isOn = jObj.value("isOn").toBool(isOn);
 
     startEffect(currentEffect);
 }
@@ -161,8 +170,9 @@ void LightStripWidget::startTestEffect(Effect effect)
     currentColor = QColorConstants::Svg::purple;
 
     colors = {QColor("red"), QColor("white"), QColor("blue")};
-    cycleTime = 1000;
+    cycleTime = 3000;
     fadeBetweenColors = true;
+    easeType = EaseInOutQuad;
 
     backgroundColor = Qt::black;
     pulseDirection = true;
@@ -259,13 +269,13 @@ void LightStripWidget::updateAnimation() {
 
 
     if (isDimming) {
-        float a = linearlyInterpolate(1.0, DIM, progress);
+        float a = interpolate(1.0, DIM, progress);
         currentColor.setAlphaF(a);
         update();
         return;
     }
     if (isBrightening) {
-        float a = linearlyInterpolate(DIM, 1.0, progress);
+        float a = interpolate(DIM, 1.0, progress);
         currentColor.setAlphaF(a);
         update();
         return;
@@ -275,7 +285,7 @@ void LightStripWidget::updateAnimation() {
     case OffAndOn: {
         if (fadeBetweenColors) {
             currentColor = colors.at(currentIndex);
-            float a = linearlyInterpolate(isFading, !isFading, progress);
+            float a = interpolate(isFading, !isFading, progress, easeType);
             currentColor.setAlphaF(a);
         } else {
             currentColor = isFading ? colors.at(currentIndex) : Qt::transparent;
@@ -286,7 +296,7 @@ void LightStripWidget::updateAnimation() {
         if (fadeBetweenColors) {
             QColor indexedColor = colors.at(currentIndex);
             QColor nextColor = colors.at((currentIndex + 1) % colors.size());
-            currentColor = blendColors(indexedColor, nextColor, progress);
+            currentColor = blendColors(indexedColor, nextColor, progress, easeType);
         } else {
             currentColor = colors.at(currentIndex);
         }
@@ -335,9 +345,12 @@ void LightStripWidget::paintEvent(QPaintEvent *event) {
         case Pulse: {
             painter.fillRect(rect(), backgroundColor);
 
-            int x = linearlyInterpolate(pulseDirection ? 0.0 : width(), pulseDirection ? width() : 0.0, progress);
-            int size = width() / 7;
-            QRect pulseRect(x - size / 2, 0, size, height());
+            int size = width() / 7; // arbitrary
+            int minX = -size;
+            int maxX = width();
+            int x = interpolate(pulseDirection ? minX : maxX, pulseDirection ? maxX : minX, progress, easeType);
+
+            QRect pulseRect(x, 0, size, height());
             painter.fillRect(pulseRect, currentColor);
         }
             break;
@@ -354,16 +367,17 @@ LightStripWidget::Effect LightStripWidget::getCurrentEffect() const
 
 
 
-QColor LightStripWidget::blendColors(const QColor& startColor, const QColor& endColor, double progress) {
-    int r = linearlyInterpolate(startColor.red(), endColor.red(), progress);
-    int g = linearlyInterpolate(startColor.green(), endColor.green(), progress);
-    int b = linearlyInterpolate(startColor.blue(), endColor.blue(), progress);
+QColor LightStripWidget::blendColors(const QColor& startColor, const QColor& endColor, double progress, EaseType easeType) {
+    int r = interpolate(startColor.red(), endColor.red(), progress, easeType);
+    int g = interpolate(startColor.green(), endColor.green(), progress, easeType);
+    int b = interpolate(startColor.blue(), endColor.blue(), progress, easeType);
 
     return QColor(r, g, b);
 }
 
-double LightStripWidget::linearlyInterpolate(double startVal, double endVal, double progress)
+double LightStripWidget::interpolate(double startVal, double endVal, double progress, EaseType easeType)
 {
+    progress = getEasedProgress(easeType, progress);
     progress = qBound(0.0, progress, 1.0);
     return startVal * (1 - progress) + endVal * progress;
 }

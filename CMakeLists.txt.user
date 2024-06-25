@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 11.0.2, 2024-06-18T00:21:06. -->
+<!-- Written by QtCreator 11.0.2, 2024-06-24T16:03:45. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -977,7 +977,7 @@
      <value type="QString" key="identifier"></value>
      <value type="int" key="type">0</value>
     </valuemap>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Run Intellilights on iOS Device</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Run  on iOS Device</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.IosRunConfiguration:Intellilights</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">Intellilights</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
